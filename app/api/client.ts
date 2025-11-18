@@ -105,13 +105,11 @@ export async function getProposicoes(
   pagina: number,
   searchTerm: string, // Novo parâmetro
 ): Promise<PaginatedResponse<Proposicoes>> {
-  // Adiciona o termo de busca apenas se ele não for vazio
   const searchParam = searchTerm
     ? `&keywords=${encodeURIComponent(searchTerm)}`
     : "";
 
   const endpoint = `/proposicoes?pagina=${pagina}&itens=10&ordenarPor=id&ordem=DESC${searchParam}`;
-
   return fetchCamaraAPI<Proposicoes>(endpoint);
 }
 

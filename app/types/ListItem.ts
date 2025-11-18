@@ -5,6 +5,7 @@ export interface ListItem {
   author: string;
   description: string;
   href?: string;
+  ementa?: string;
 }
 
 export type PageName = "proposicoes" | "deputados";

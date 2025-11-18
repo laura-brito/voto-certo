@@ -3,6 +3,7 @@ import React, { useEffect, useState } from "react";
 import { ListItem } from "../types/ListItem";
 import { LuSearchCheck } from "react-icons/lu";
 import Link from "next/link";
+import { ProposicaoExplainer } from "./ProposicaoExplainer";
 
 interface ListPageLayoutProps {
   items: ListItem[];
@@ -10,6 +11,7 @@ interface ListPageLayoutProps {
   onSearchSubmit: (searchTerm: string) => void;
   isLoading: boolean;
   error: string | null;
+  initialSearchTerm: string;
 }
 
 const ItemContent: React.FC<{ item: ListItem }> = ({ item }) => (
@@ -27,6 +29,11 @@ const ItemContent: React.FC<{ item: ListItem }> = ({ item }) => (
       <p className="text-sm text-gray-700 dark:text-gray-300">
         {item.description}
       </p>
+      {item.ementa && (
+        <div className="mt-4">
+          <ProposicaoExplainer ementa={item.ementa} />
+        </div>
+      )}
     </div>
   </>
 );
@@ -37,18 +44,24 @@ export const ListPageLayout: React.FC<ListPageLayoutProps> = ({
   onSearchSubmit,
   isLoading,
   error,
+  initialSearchTerm,
 }) => {
-  const [inputValue, setInputValue] = useState("");
+  const [inputValue, setInputValue] = useState(initialSearchTerm);
+  useEffect(() => {
+    setInputValue(initialSearchTerm);
+  }, [initialSearchTerm]);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      onSearchSubmit(inputValue);
-    }, 500);
-
-    return () => {
-      clearTimeout(timer);
-    };
-  }, [inputValue, onSearchSubmit]);
+    // Se o que o usuário digitou for DIFERENTE do que está na URL...
+    if (inputValue !== initialSearchTerm) {
+      // ...inicie o timer para atualizar a URL.
+      const timer = setTimeout(() => {
+        onSearchSubmit(inputValue);
+      }, 500); // 500ms debounce
+      return () => clearTimeout(timer);
+    }
+    // Se for igual, não faça nada (evita busca ao clicar em "Voltar")
+  }, [inputValue, initialSearchTerm, onSearchSubmit]);
 
   const cardClasses =
     "flex items-start space-x-4 rounded-lg border border-gray-200 bg-white p-4 shadow-sm transition-colors hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:hover:bg-gray-700";

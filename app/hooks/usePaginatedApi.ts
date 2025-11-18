@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useRef } from "react"; // 1. Importe useRef
+import { useState, useEffect } from "react";
 import { ListItem } from "../types/ListItem";
 import { PaginatedResponse } from "../api/client";
 
@@ -14,39 +14,23 @@ export function usePaginatedApi<T>(
   fetchFunction: FetchPaginatedFunction<T>,
   transformFunction: TransformFunction<T>,
   searchTerm: string,
+  currentPage: number, // 1. RECEBE currentPage como prop
 ) {
   const [items, setItems] = useState<ListItem[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
-  const prevSearchTerm = useRef(searchTerm);
-
+  // 2. REMOVA todos os 'useRef' e a lógica de 'hasSearchChanged'
+  // O hook agora é simples. Ele busca o que a página manda.
   useEffect(() => {
-    const hasSearchChanged = prevSearchTerm.current !== searchTerm;
-
-    const pageToFetch = hasSearchChanged ? 1 : currentPage;
-
-    if (hasSearchChanged && currentPage !== 1) {
-      setCurrentPage(1);
-      // Atualize o ref para a próxima renderização
-      prevSearchTerm.current = searchTerm;
-      return; // NÃO BUSQUE (evita a race condition)
-    }
-
-    // 8. Atualize o ref para a próxima renderização
-    prevSearchTerm.current = searchTerm;
-
-    // 9. Lógica principal de busca
     const loadData = async () => {
       setIsLoading(true);
       setError(null);
-      setItems([]);
+      setItems([]); // Limpa itens anteriores
+
       try {
-        // Use 'pageToFetch' para garantir que
-        // uma nova busca sempre use a página 1.
-        const response = await fetchFunction(pageToFetch, searchTerm);
+        const response = await fetchFunction(currentPage, searchTerm);
         setItems(response.items.map(transformFunction));
         setTotalPages(response.totalPages);
       } catch (err) {
@@ -62,16 +46,9 @@ export function usePaginatedApi<T>(
     };
 
     loadData();
-
-    // As dependências continuam as mesmas
+    // 3. O hook re-executa se a página ou a busca mudarem
   }, [currentPage, searchTerm, fetchFunction, transformFunction]);
 
-  return {
-    items,
-    isLoading,
-    error,
-    currentPage,
-    totalPages,
-    setCurrentPage,
-  };
+  // 4. NÃO retorna mais 'setCurrentPage'
+  return { items, isLoading, error, totalPages };
 }
