@@ -66,6 +66,7 @@ const DeputadosPage: React.FC = () => {
       {!isLoading && !error && totalPages > 1 && (
         <div className="mt-8 flex justify-center">
           <Pagination
+            lang="pt"
             currentPage={currentPage}
             totalPages={totalPages}
             onPageChange={onPageChange}
