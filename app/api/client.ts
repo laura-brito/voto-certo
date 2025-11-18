@@ -1,47 +1,102 @@
-// Tipos básicos (você pode movê-los para app/types/...)
-interface BaseResponse<T> {
-  dados: T[];
-  links: { rel: string; href: string }[];
-}
+// app/services/camaraAPI.ts
 
-// Assumindo que você já tem esses tipos
 import { Proposicoes } from "../types/proposicoes";
 import { Deputado } from "../types/deputados";
 
 const BASE_URL = "https://dadosabertos.camara.leg.br/api/v2";
 
+// --- Tipos de Resposta ---
+interface CamaraApiResponse<T> {
+  dados: T[];
+  links: { rel: string; href: string }[];
+}
+
+export interface PaginatedResponse<T> {
+  items: T[];
+  totalPages: number; // Voltamos a ter o totalPages!
+}
+
 /**
- * Função genérica para fazer o fetch na API
+ * Helper para extrair o número total de páginas
+ * do link "last" da API.
  */
-async function fetchCamaraAPI<T>(endpoint: string): Promise<T[]> {
+function parseTotalPages(links: { rel: string; href: string }[]): number {
+  const lastLink = links.find((link) => link.rel === "last");
+
+  // Fallback: Se não houver link "last", assumimos que há apenas 1 página
+  if (!lastLink) {
+    // Se não há "last", mas há "prev", significa que estamos na página 1 e não há outras.
+    // Se não há "last" nem "prev", também é página 1.
+    return 1;
+  }
+
+  try {
+    const url = new URL(lastLink.href);
+    const totalPages = url.searchParams.get("pagina");
+    // Garante que retornamos um número, com fallback para 1
+    return totalPages ? parseInt(totalPages, 10) : 1;
+  } catch (error) {
+    console.error("Falha ao parsear total de páginas do link 'last'", error);
+    return 1; // Retorna 1 em caso de erro
+  }
+}
+
+/**
+ * Função genérica ATUALIZADA para fazer o fetch na API
+ * Retorna um objeto PaginatedResponse
+ */
+async function fetchCamaraAPI<T>(
+  endpoint: string,
+): Promise<PaginatedResponse<T>> {
   const response = await fetch(BASE_URL + endpoint, {
     headers: {
       Accept: "application/json",
     },
-    // Sugestão: Adicionar cache para melhorar a performance
-    next: { revalidate: 3600 }, // Cache de 1 hora
+    next: { revalidate: 3600 },
   });
 
   if (!response.ok) {
     throw new Error(`Erro na API (${response.status}): ${response.statusText}`);
   }
 
-  const data: BaseResponse<T> = await response.json();
-  return data.dados;
+  const data: CamaraApiResponse<T> = await response.json();
+
+  // Extrai o total de páginas dos links
+  const totalPages = parseTotalPages(data.links);
+
+  return {
+    items: data.dados,
+    totalPages: totalPages,
+  };
 }
 
-/**
- * Busca as 10 últimas proposições
- */
-export async function getProposicoes(): Promise<Proposicoes[]> {
-  const endpoint = "/proposicoes?itens=10&ordem=DESC&ordenarPor=ano";
+export async function getProposicoes(
+  pagina: number,
+  searchTerm: string, // Novo parâmetro
+): Promise<PaginatedResponse<Proposicoes>> {
+  // Adiciona o termo de busca apenas se ele não for vazio
+  const searchParam = searchTerm
+    ? `&keywords=${encodeURIComponent(searchTerm)}`
+    : "";
+
+  const endpoint = `/proposicoes?pagina=${pagina}&itens=10&ordenarPor=id&ordem=DESC${searchParam}`;
+
   return fetchCamaraAPI<Proposicoes>(endpoint);
 }
 
 /**
- * Busca 10 deputados ordenados por nome
+ * Busca deputados (PAGINADO E COM BUSCA)
  */
-export async function getDeputados(): Promise<Deputado[]> {
-  const endpoint = "/deputados?itens=10&ordem=ASC&ordenarPor=nome";
+export async function getDeputados(
+  pagina: number,
+  searchTerm: string, // Novo parâmetro
+): Promise<PaginatedResponse<Deputado>> {
+  // Adiciona o termo de busca apenas se ele não for vazio
+  const searchParam = searchTerm
+    ? `&nome=${encodeURIComponent(searchTerm)}`
+    : "";
+
+  const endpoint = `/deputados?pagina=${pagina}&itens=10&ordenarPor=nome&ordem=ASC${searchParam}`;
+
   return fetchCamaraAPI<Deputado>(endpoint);
 }

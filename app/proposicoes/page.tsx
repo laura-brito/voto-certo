@@ -1,15 +1,16 @@
 "use client";
-import React from "react";
+import React, { useState } from "react";
 import { LuFileText } from "react-icons/lu";
-import { ListPageLayout } from "../components/ListPageLayout"; // Import centralizado
-import { useApiData } from "../hooks/useApiData"; // Import do Hook
+import { ListPageLayout } from "../components/ListPageLayout";
 import { Proposicoes } from "../types/proposicoes";
 import { ListItem } from "../types/ListItem";
+import { usePaginatedApi } from "../hooks/usePaginatedApi";
+import { Pagination } from "flowbite-react";
 import { getProposicoes } from "../api/client";
-import { LoadingSpinner } from "../components/UI/LoadingSpinner";
-import { ErrorMessage } from "../components/UI/ErrorMessage";
+// Importe do serviço que criamos
 
-// Função que transforma o dado "Proposicao" em "ListItem"
+// --- Função de Transformação (Fora da página) ---
+// Definida aqui para ser uma referência estável para o hook.
 const transformProposicao = (prop: Proposicoes): ListItem => ({
   id: prop.id.toString(),
   icon: <LuFileText className="h-10 w-10 text-blue-600" />,
@@ -19,21 +20,35 @@ const transformProposicao = (prop: Proposicoes): ListItem => ({
 });
 
 const ProposicoesPage: React.FC = () => {
-  // O Hook faz todo o trabalho sujo!
-  const { items, isLoading, error } = useApiData(
-    getProposicoes,
-    transformProposicao,
-  );
+  const [searchTerm, setSearchTerm] = useState("");
+
+  const { items, isLoading, error, currentPage, totalPages, setCurrentPage } =
+    usePaginatedApi(getProposicoes, transformProposicao, searchTerm);
+
+  const onPageChange = (page: number) => {
+    setCurrentPage(page);
+    window.scrollTo(0, 0);
+  };
 
   return (
     <main className="mx-auto max-w-7xl p-4 md:p-8">
-      {isLoading && <LoadingSpinner />}
-      {error && <ErrorMessage error={error} />}
-      {!isLoading && !error && (
-        <ListPageLayout
-          items={items}
-          searchPlaceholder="Pesquisar por proposições..."
-        />
+      <ListPageLayout
+        items={items}
+        searchPlaceholder="Pesquisar por proposições..."
+        onSearchSubmit={setSearchTerm}
+        isLoading={isLoading}
+        error={error}
+      />
+
+      {!isLoading && !error && totalPages > 1 && (
+        <div className="mt-8 flex justify-center">
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={onPageChange}
+            showIcons
+          />
+        </div>
       )}
     </main>
   );
