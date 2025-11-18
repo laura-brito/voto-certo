@@ -35,3 +35,18 @@ export interface DeputadoDetalhes {
   escolaridade: string;
   // ... outros campos
 }
+export interface Despesa {
+  ano: number;
+  mes: number;
+  tipoDespesa: string;
+  codDocumento: number;
+  dataDocumento: string;
+  valorDocumento: number;
+  valorLiquido: number;
+  nomeFornecedor: string;
+  cnpjCpfFornecedor: string;
+}
+
+interface CamaraApiDespesasResponse {
+  dados: Despesa[];
+}

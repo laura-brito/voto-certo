@@ -1,7 +1,19 @@
 // app/services/camaraAPI.ts
 
-import { ProposicaoDetalhes, Proposicoes } from "../types/proposicoes";
-import { Deputado, DeputadoDetalhes } from "../types/deputados";
+import {
+  CamaraApiVotacoesResponse,
+  CamaraApiVotosResponse,
+  ProposicaoDetalhes,
+  Proposicoes,
+  Votacao,
+  VotoDeputado,
+} from "../types/proposicoes";
+import {
+  CamaraApiDespesasResponse,
+  Deputado,
+  DeputadoDetalhes,
+  Despesa,
+} from "../types/deputados";
 import { Autor, CamaraApiAutoresResponse } from "../types/autores";
 
 const BASE_URL = "https://dadosabertos.camara.leg.br/api/v2";
@@ -144,5 +156,61 @@ export async function getAutoresProposicao(uri: string): Promise<Autor[]> {
   }
 
   const data: CamaraApiAutoresResponse = await response.json();
+  return data.dados;
+}
+
+export async function getVotacoesDaProposicao(
+  proposicaoId: string,
+): Promise<Votacao[]> {
+  const endpoint = `/proposicoes/${proposicaoId}/votacoes`;
+
+  const response = await fetch(BASE_URL + endpoint, {
+    headers: { Accept: "application/json" },
+    next: { revalidate: 3600 },
+  });
+
+  if (!response.ok) {
+    throw new Error(`Falha ao buscar votações: ${response.statusText}`);
+  }
+
+  const data: CamaraApiVotacoesResponse = await response.json();
+  return data.dados;
+}
+
+export async function getVotosDaVotacao(
+  votacaoId: string,
+): Promise<VotoDeputado[]> {
+  const endpoint = `/votacoes/${votacaoId}/votos`;
+
+  const response = await fetch(BASE_URL + endpoint, {
+    headers: { Accept: "application/json" },
+    next: { revalidate: 3600 },
+  });
+
+  if (!response.ok) {
+    throw new Error(`Falha ao buscar votos: ${response.statusText}`);
+  }
+
+  const data: CamaraApiVotosResponse = await response.json();
+  return data.dados;
+}
+export async function getDeputadoDespesas(
+  id: string,
+  ano: number,
+  mes: number,
+): Promise<Despesa[]> {
+  // Pedimos até 100 lançamentos no mês, ordenados por data
+  const endpoint = `/deputados/${id}/despesas?ano=${ano}&mes=${mes}&ordem=DESC&ordenarPor=dataDocumento&itens=100`;
+
+  const response = await fetch(BASE_URL + endpoint, {
+    headers: { Accept: "application/json" },
+    next: { revalidate: 3600 }, // Cache de 1h
+  });
+
+  if (!response.ok) {
+    throw new Error(`Falha ao buscar despesas: ${response.statusText}`);
+  }
+
+  const data: CamaraApiDespesasResponse = await response.json();
   return data.dados;
 }

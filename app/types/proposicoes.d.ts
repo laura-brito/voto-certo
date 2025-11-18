@@ -36,3 +36,32 @@ export interface ProposicaoDetalhes {
     despacho: string;
   };
 }
+interface CamaraApiVotacoesResponse {
+  dados: Votacao[];
+}
+
+// A resposta da lista de votos
+interface CamaraApiVotosResponse {
+  dados: VotoDeputado[];
+}
+
+// Tipo para uma Votação (simplificado)
+export interface Votacao {
+  id: string;
+  data: string;
+  // A 'ementa' da votação pode ser diferente da proposição
+  ementa: string | null;
+}
+
+// Tipo para um Voto individual de um deputado
+export interface VotoDeputado {
+  tipoVoto: "Sim" | "Não" | "Abstenção" | "Obstrução" | string;
+  // ATENÇÃO: A API retorna 'deputado_' com underscore!
+  deputado_: {
+    id: string;
+    nome: string;
+    siglaPartido: string;
+    siglaUf: string;
+    urlFoto: string;
+  };
+}

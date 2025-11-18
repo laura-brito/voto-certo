@@ -2,53 +2,103 @@
 
 import React, { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { LoadingSpinner } from "../../components/UI/LoadingSpinner";
-import { ErrorMessage } from "../../components/UI/ErrorMessage";
-import { Card, Button, Badge } from "flowbite-react";
-import { HiArrowLeft, HiOutlineCalendar, HiOutlineUser } from "react-icons/hi";
-import { getAutoresProposicao, getProposicaoById } from "@/app/api/client";
-import { ProposicaoDetalhes } from "@/app/types/proposicoes";
+import Link from "next/link"; // Importe o Link do Next.js
+import { LoadingSpinner } from "../../components/UI/LoadingSpinner"; // Verifique o caminho
+import { ErrorMessage } from "../../components/UI/ErrorMessage"; // Verifique o caminho
+import {
+  Card,
+  Button,
+  Badge,
+  Modal,
+  ModalFooter,
+  ModalBody,
+  ModalHeader,
+  Spinner,
+} from "flowbite-react";
+import {
+  HiArrowLeft,
+  HiOutlineCalendar,
+  HiOutlineUser,
+  HiCheckCircle, // Ícone para "Sim"
+  HiXCircle, // Ícone para "Não"
+} from "react-icons/hi";
+import {
+  ProposicaoDetalhes,
+  Votacao,
+  VotoDeputado,
+} from "@/app/types/proposicoes";
 import { Autor } from "@/app/types/autores";
+import {
+  getAutoresProposicao,
+  getProposicaoById,
+  getVotacoesDaProposicao,
+  getVotosDaVotacao,
+} from "@/app/api/client";
+
+/**
+ * Helper para extrair o ID do Deputado da URI
+ */
+const getDeputadoIdFromUri = (uri: string): string | null => {
+  const match = uri.match(/\/deputados\/(\d+)$/);
+  return match ? match[1] : null;
+};
 
 const ProposicaoDetailPage: React.FC = () => {
   const params = useParams();
   const router = useRouter();
   const id = params.id as string;
 
+  // Estados principais
   const [proposicao, setProposicao] = useState<ProposicaoDetalhes | null>(null);
-  const [autores, setAutores] = useState<Autor[]>([]); // 3. Crie o estado para autores
-  const [isLoading, setIsLoading] = useState(true);
-  const [isAutoresLoading, setIsAutoresLoading] = useState(true); // 4. Crie um loading separado
+  const [autores, setAutores] = useState<Autor[]>([]);
   const [error, setError] = useState<string | null>(null);
 
-  // 5. Efeito 1: Busca a Proposição Principal
+  // Estados de Votação
+  const [votacaoPrincipal, setVotacaoPrincipal] = useState<Votacao | null>(
+    null,
+  );
+  const [votos, setVotos] = useState<VotoDeputado[]>([]);
+
+  // Estados de Loading
+  const [isLoading, setIsLoading] = useState(true);
+  const [isAutoresLoading, setIsAutoresLoading] = useState(true);
+  const [isVotosLoading, setIsVotosLoading] = useState(true);
+
+  // Estados do Modal
+  const [showModal, setShowModal] = useState(false);
+  const [selectedAutor, setSelectedAutor] = useState<Autor | null>(null);
+
+  // Efeito 1: Busca a Proposição Principal
   useEffect(() => {
     if (id) {
       const fetchDetalhes = async () => {
         setIsLoading(true);
-        setIsAutoresLoading(true); // Liga os dois loaders
+        setIsAutoresLoading(true);
+        setIsVotosLoading(true); // Liga todos os loaders
         setError(null);
         setProposicao(null);
         setAutores([]);
+        setVotos([]);
 
         try {
           const data = await getProposicaoById(id);
-          setProposicao(data); // Isso vai disparar o Efeito 2
+          setProposicao(data); // Dispara os Efeitos 2 e 3
         } catch (err) {
           const msg =
             err instanceof Error ? err.message : "Falha ao buscar detalhes.";
           setError(msg);
-          setIsAutoresLoading(false); // Pare o outro loader se falhar
+          // Pare os outros loaders se a proposição principal falhar
+          setIsAutoresLoading(false);
+          setIsVotosLoading(false);
         } finally {
-          setIsLoading(false); // Termina o loading *principal*
+          setIsLoading(false); // Termina o loading principal
         }
       };
-
       fetchDetalhes();
     }
   }, [id]);
 
-  // 6. Efeito 2: Busca os Autores (disparado quando 'proposicao' é setado)
+  // Efeito 2: Busca os Autores
   useEffect(() => {
     if (proposicao && proposicao.uriAutores) {
       const fetchAutores = async () => {
@@ -57,36 +107,87 @@ const ProposicaoDetailPage: React.FC = () => {
           setAutores(autoresData);
         } catch (err) {
           console.error("Erro ao buscar autores:", err);
-          // Opcional: setar um erro específico para autores
         } finally {
-          setIsAutoresLoading(false); // Termina o loading *dos autores*
+          setIsAutoresLoading(false);
         }
       };
-
       fetchAutores();
+    } else if (proposicao) {
+      // Se 'proposicao' existe mas não tem 'uriAutores'
+      setIsAutoresLoading(false);
     }
   }, [proposicao]); // Depende do objeto 'proposicao'
+
+  useEffect(() => {
+    if (id) {
+      const fetchVotacoes = async () => {
+        try {
+          const votacoesData = await getVotacoesDaProposicao(id);
+
+          if (votacoesData && votacoesData.length > 0) {
+            const mainVotacao = votacoesData[0]; // Pega a primeira/mais recente
+            setVotacaoPrincipal(mainVotacao);
+
+            const votosData = await getVotosDaVotacao(mainVotacao.id);
+            setVotos(votosData);
+          }
+        } catch (err) {
+          console.error("Erro ao buscar votações:", err);
+        } finally {
+          setIsVotosLoading(false);
+        }
+      };
+      fetchVotacoes();
+    }
+  }, [id]);
+
+  // Função para abrir o modal
+  const handleAutorClick = (autor: Autor) => {
+    setSelectedAutor(autor);
+    setShowModal(true);
+  };
+
+  // Funções helper para filtrar e renderizar os votos
+  const votosSim = votos.filter((v) => v.tipoVoto === "Sim");
+  const votosNao = votos.filter((v) => v.tipoVoto === "Não");
+
+  const renderVotoList = (votos: VotoDeputado[]) => (
+    <ul className="list-inside list-disc space-y-1 text-sm">
+      {votos.map((voto) => (
+        <li key={voto.deputado_.id}>
+          <Link
+            href={`/deputados/${voto.deputado_.id}`}
+            className="text-blue-600 hover:underline dark:text-blue-500"
+          >
+            {voto.deputado_.nome}
+          </Link>{" "}
+          <span className="text-gray-500 dark:text-gray-400">
+            ({voto.deputado_.siglaPartido}-{voto.deputado_.siglaUf})
+          </span>
+        </li>
+      ))}
+    </ul>
+  );
 
   const renderContent = () => {
     if (isLoading) {
       return <LoadingSpinner />;
     }
-
     if (error) {
       return <ErrorMessage error={error} />;
     }
-
     if (!proposicao) {
       return <ErrorMessage error="Proposição não encontrada." />;
     }
 
     const { statusProposicao } = proposicao;
-
-    // 7. Renderiza o nome do autor (com estado de loading)
-    const autorPrincipal =
-      isAutoresLoading && autores.length === 0
+    const primeiroAutor =
+      !isAutoresLoading && autores.length > 0 ? autores[0] : null;
+    const autorPrincipalNome = primeiroAutor
+      ? primeiroAutor.nome
+      : isAutoresLoading
         ? "Carregando..."
-        : autores[0]?.nome || "Autor desconhecido";
+        : "Autor desconhecido";
 
     return (
       <Card className="w-full max-w-3xl">
@@ -96,8 +197,17 @@ const ProposicaoDetailPage: React.FC = () => {
             {proposicao.siglaTipo} {proposicao.numero}/{proposicao.ano}
           </h5>
           <div className="flex flex-wrap gap-2">
-            <Badge icon={HiOutlineUser} color="gray">
-              {autorPrincipal}
+            <Badge
+              icon={HiOutlineUser}
+              color="gray"
+              onClick={() => primeiroAutor && handleAutorClick(primeiroAutor)}
+              className={
+                primeiroAutor
+                  ? "cursor-pointer transition-colors hover:bg-gray-200 dark:hover:bg-gray-700"
+                  : ""
+              }
+            >
+              {autorPrincipalNome}
             </Badge>
             <Badge icon={HiOutlineCalendar} color="gray">
               Apresentada em:{" "}
@@ -120,7 +230,7 @@ const ProposicaoDetailPage: React.FC = () => {
             </p>
           </div>
 
-          {/* 8. Seção de Autoria */}
+          {/* Autoria */}
           <div className="py-4">
             <h6 className="mb-2 text-lg font-semibold text-gray-900 dark:text-white">
               Autoria
@@ -130,10 +240,14 @@ const ProposicaoDetailPage: React.FC = () => {
                 Carregando autores...
               </p>
             ) : (
-              <ul className="list-disc space-y-1 pl-5 text-sm text-gray-700 dark:text-gray-300">
+              <ul className="list-disc space-y-1 pl-5 text-sm">
                 {autores.length > 0 ? (
                   autores.map((autor) => (
-                    <li key={autor.uri}>
+                    <li
+                      key={autor.uri}
+                      className="cursor-pointer text-blue-600 hover:underline dark:text-blue-500"
+                      onClick={() => handleAutorClick(autor)}
+                    >
                       {autor.nome} ({autor.tipo})
                     </li>
                   ))
@@ -169,21 +283,108 @@ const ProposicaoDetailPage: React.FC = () => {
               </ul>
             </div>
           )}
+
+          {/* Votação Principal */}
+          <div className="py-4">
+            <h6 className="mb-2 text-lg font-semibold text-gray-900 dark:text-white">
+              Votação Principal
+              {votacaoPrincipal && (
+                <span className="ml-2 text-sm font-normal text-gray-500 dark:text-gray-400">
+                  (em{" "}
+                  {new Date(votacaoPrincipal.data).toLocaleDateString("pt-BR")})
+                </span>
+              )}
+            </h6>
+            {isVotosLoading ? (
+              <>
+                <div>
+                  <div className="flex items-center text-sm text-gray-500 dark:text-gray-400">
+                    <Spinner size="sm" />
+                    <span className="ml-2">Buscando votos...</span>
+                  </div>
+                </div>
+              </>
+            ) : votos.length > 0 ? (
+              <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                {/* Coluna A Favor */}
+                <div>
+                  <h5 className="mb-2 flex items-center font-semibold text-green-600">
+                    <HiCheckCircle className="mr-2 h-5 w-5" />A Favor (
+                    {votosSim.length})
+                  </h5>
+                  {votosSim.length > 0 ? (
+                    renderVotoList(votosSim)
+                  ) : (
+                    <p className="text-sm text-gray-500">Nenhum voto Sim.</p>
+                  )}
+                </div>
+                {/* Coluna Contra */}
+                <div>
+                  <h5 className="mb-2 flex items-center font-semibold text-red-600">
+                    <HiXCircle className="mr-2 h-5 w-5" />
+                    Contra ({votosNao.length})
+                  </h5>
+                  {votosNao.length > 0 ? (
+                    renderVotoList(votosNao)
+                  ) : (
+                    <p className="text-sm text-gray-500">Nenhum voto Não.</p>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                Nenhuma votação registrada para esta proposição.
+              </p>
+            )}
+          </div>
         </div>
+
+        {/* Modal de Informações do Autor */}
+        <Modal show={showModal} onClose={() => setShowModal(false)}>
+          <ModalHeader>Informações do Autor</ModalHeader>
+          <ModalBody>
+            <div className="space-y-4 text-base leading-relaxed text-gray-500 dark:text-gray-400">
+              <p>
+                <strong>Nome:</strong> {selectedAutor?.nome}
+              </p>
+              <p>
+                <strong>Tipo:</strong> {selectedAutor?.tipo}
+              </p>
+            </div>
+          </ModalBody>
+          <ModalFooter>
+            {/* Link condicional para a página de detalhes do deputado */}
+            {selectedAutor &&
+              selectedAutor.tipo === "Deputado(a)" &&
+              getDeputadoIdFromUri(selectedAutor.uri) && (
+                <Button
+                  onClick={() =>
+                    router.push(
+                      `/deputados/${getDeputadoIdFromUri(selectedAutor.uri)}`,
+                    )
+                  }
+                >
+                  Ver Perfil
+                </Button>
+              )}
+            <Button color="gray" onClick={() => setShowModal(false)}>
+              Fechar
+            </Button>
+          </ModalFooter>
+        </Modal>
       </Card>
     );
   };
 
   return (
     <main className="mx-auto max-w-7xl p-4 md:p-8">
-      {/* Botão "Voltar" no topo */}
+      {/* Botão "Voltar" */}
       <div className="mb-4">
         <Button onClick={() => router.back()} color="gray" size="sm">
           <HiArrowLeft className="mr-2 h-4 w-4" />
           Voltar
         </Button>
       </div>
-
       {/* Conteúdo */}
       <div className="flex justify-center">{renderContent()}</div>
     </main>
