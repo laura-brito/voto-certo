@@ -7,16 +7,14 @@ import { ListItem } from "../types/ListItem";
 import { usePaginatedApi } from "../hooks/usePaginatedApi";
 import { Pagination } from "flowbite-react";
 import { getProposicoes } from "../api/client";
-// Importe do serviço que criamos
 
-// --- Função de Transformação (Fora da página) ---
-// Definida aqui para ser uma referência estável para o hook.
 const transformProposicao = (prop: Proposicoes): ListItem => ({
   id: prop.id.toString(),
   icon: <LuFileText className="h-10 w-10 text-blue-600" />,
   title: `${prop.siglaTipo} ${prop.numero}/${prop.ano}`,
   author: `ID Proposição: ${prop.id}`,
   description: prop.ementa || "Sem ementa disponível.",
+  href: `/proposicoes/${prop.id}`,
 });
 
 const ProposicoesPage: React.FC = () => {

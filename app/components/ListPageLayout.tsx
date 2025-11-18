@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from "react";
 import { ListItem } from "../types/ListItem";
 import { LuSearchCheck } from "react-icons/lu";
+import Link from "next/link";
 
 interface ListPageLayoutProps {
   items: ListItem[];
@@ -10,6 +11,25 @@ interface ListPageLayoutProps {
   isLoading: boolean;
   error: string | null;
 }
+
+const ItemContent: React.FC<{ item: ListItem }> = ({ item }) => (
+  <>
+    <div className="flex h-12 w-12 shrink-0 items-center justify-center">
+      {item.icon}
+    </div>
+    <div className="min-w-0 flex-1">
+      <h3 className="truncate text-lg font-semibold text-gray-900 dark:text-white">
+        {item.title}
+      </h3>
+      <p className="mb-1 text-sm text-gray-500 dark:text-gray-400">
+        {item.author}
+      </p>
+      <p className="text-sm text-gray-700 dark:text-gray-300">
+        {item.description}
+      </p>
+    </div>
+  </>
+);
 
 export const ListPageLayout: React.FC<ListPageLayoutProps> = ({
   items,
@@ -30,8 +50,10 @@ export const ListPageLayout: React.FC<ListPageLayoutProps> = ({
     };
   }, [inputValue, onSearchSubmit]);
 
+  const cardClasses =
+    "flex items-start space-x-4 rounded-lg border border-gray-200 bg-white p-4 shadow-sm transition-colors hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:hover:bg-gray-700";
+
   const renderContent = () => {
-    // --- Estado de Carregamento (agora é um card) ---
     if (isLoading) {
       return (
         <div className="flex items-center justify-center rounded-lg border border-gray-200 bg-white p-10 shadow-sm dark:border-gray-700 dark:bg-gray-800">
@@ -41,7 +63,6 @@ export const ListPageLayout: React.FC<ListPageLayoutProps> = ({
       );
     }
 
-    // --- Estado de Erro (já era um card) ---
     if (error) {
       return (
         <div className="rounded-lg border border-red-400 bg-red-100 p-10 text-red-700 shadow-lg dark:border-red-700 dark:bg-gray-800 dark:text-red-300">
@@ -51,7 +72,6 @@ export const ListPageLayout: React.FC<ListPageLayoutProps> = ({
       );
     }
 
-    // --- Estado Vazio (agora é um card) ---
     if (items.length === 0) {
       return (
         <div className="rounded-lg border border-gray-200 bg-white p-6 text-center text-gray-500 shadow-sm dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400">
@@ -62,44 +82,25 @@ export const ListPageLayout: React.FC<ListPageLayoutProps> = ({
       );
     }
 
-    // --- Estado da Lista (container transparente, cards de item) ---
     return (
-      // Este container é transparente e apenas adiciona espaço
       <div className="space-y-4">
-        {items.map((item) => (
-          <article
-            key={item.id}
-            // Este é o card do item
-            className="flex items-start space-x-4 rounded-lg border border-gray-200 bg-white p-4 shadow-sm transition-colors hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:hover:bg-gray-700"
-          >
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center">
-              {item.icon}
-            </div>
-            <div className="min-w-0 flex-1">
-              <h3 className="truncate text-lg font-semibold text-gray-900 dark:text-white">
-                {item.title}
-              </h3>
-              <p className="mb-1 text-sm text-gray-500 dark:text-gray-400">
-                {item.author}
-              </p>
-              <p className="text-sm text-gray-700 dark:text-gray-300">
-                {item.description}
-              </p>
-            </div>
-          </article>
-        ))}
+        {items.map((item) =>
+          item.href ? (
+            <Link href={item.href} key={item.id} className={cardClasses}>
+              <ItemContent item={item} />
+            </Link>
+          ) : (
+            <article key={item.id} className={cardClasses}>
+              <ItemContent item={item} />
+            </article>
+          ),
+        )}
       </div>
     );
   };
 
   return (
-    // 1. O Fragment foi removido.
-    //    Agora há apenas um container principal transparente.
-    //    Adicionamos 'space-y-4' para separar a busca do conteúdo.
     <div className="space-y-4">
-      {/* --- Card de Busca (Agora Transparente) --- */}
-      {/* 2. O 'div' com fundo, borda e sombra foi removido. */}
-      {/* O input de busca agora tem seu próprio estilo. */}
       <div>
         <label htmlFor="search" className="sr-only">
           Pesquisar
@@ -108,7 +109,6 @@ export const ListPageLayout: React.FC<ListPageLayoutProps> = ({
           <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
             <LuSearchCheck className="h-5 w-5 text-gray-500 dark:text-gray-400" />
           </div>
-          {/* 3. O input mantém seu próprio fundo, borda e sombra */}
           <input
             type="text"
             id="search"

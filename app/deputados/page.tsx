@@ -40,6 +40,7 @@ const transformDeputado = (dep: Deputado): ListItem => {
     title: `${dep.nome} (${dep.siglaPartido})`,
     author: `Estado: ${dep.siglaUf}`,
     description: `Email: ${dep.email || "Não informado"}`,
+    href: `/deputados/${dep.id}`,
   };
 };
 

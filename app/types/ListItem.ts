@@ -4,6 +4,7 @@ export interface ListItem {
   title: string;
   author: string;
   description: string;
+  href?: string;
 }
 
 export type PageName = "proposicoes" | "deputados";
