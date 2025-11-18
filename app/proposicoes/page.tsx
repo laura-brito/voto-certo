@@ -1,10 +1,13 @@
-// app/proposicoes/page.tsx (Este é um arquivo NOVO)
-
 import React, { Suspense } from "react";
-import ProposicoesClientPage from "./ProposicoesClientPage"; // Importe o componente de lógica
+import ProposicoesClientPage from "./ProposicoesClientPage";
 import { LoadingSpinner } from "../components/UI/LoadingSpinner";
+import { Metadata } from "next";
 
-// Esta é a página "real" que o Next.js renderiza.
+export const metadata: Metadata = {
+  title: "Proposições Legislativas",
+  description:
+    "Pesquise projetos de lei (PL), propostas de emenda (PEC) e outras proposições em tramitação na Câmara.",
+};
 export default function ProposicoesPage() {
   return (
     <Suspense fallback={<PageFallback />}>

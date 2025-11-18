@@ -1,7 +1,12 @@
 import React, { Suspense } from "react";
 import DeputadosClientPage from "./DeputadosClientPage";
 import { LoadingSpinner } from "../components/UI/LoadingSpinner";
-
+import { Metadata } from "next";
+export const metadata: Metadata = {
+  title: "Deputados Federais",
+  description:
+    "Encontre e pesquise deputados federais em exercício. Veja detalhes, gastos e atividades.",
+};
 export default function DeputadosPage() {
   return (
     <Suspense fallback={<PageFallback />}>

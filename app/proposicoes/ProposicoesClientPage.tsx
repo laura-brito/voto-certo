@@ -76,6 +76,15 @@ const ProposicoesClientPage: React.FC = () => {
 
   return (
     <main className="mx-auto max-w-7xl p-4 md:p-8">
+      <div className="mb-6">
+        <h1 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-white">
+          Proposições Legislativas
+        </h1>
+        <p className="mt-1 text-lg text-gray-600 dark:text-gray-400">
+          Pesquise projetos de lei (PL), propostas de emenda (PEC) e outras
+          propostas em tramitação.
+        </p>
+      </div>
       <ListPageLayout
         items={items}
         searchPlaceholder="Pesquisar por proposições..."
