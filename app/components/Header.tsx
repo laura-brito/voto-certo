@@ -11,6 +11,7 @@ import {
   NavbarLink,
   NavbarToggle,
 } from "flowbite-react";
+import Image from "next/image";
 
 export const Header: React.FC = () => {
   const pathname = usePathname();
@@ -21,10 +22,14 @@ export const Header: React.FC = () => {
       rounded
       className="border-gray-200 bg-white px-4 py-2.5 shadow-md lg:px-6 dark:bg-gray-800"
     >
-      <NavbarBrand as={Link} href="/">
-        <span className="self-center text-xl font-semibold whitespace-nowrap dark:text-white">
-          Voto Certo
-        </span>
+      <NavbarBrand as={Link} href="/" className="m-0 mr-0 shrink-0 p-0">
+        <Image
+          src="/logo.svg"
+          alt="Voto Certo Logo"
+          width={80}
+          height={80}
+          className="block"
+        />
       </NavbarBrand>
 
       <div className="flex items-center space-x-2 md:order-2 md:space-x-4">
