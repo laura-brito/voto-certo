@@ -1,14 +1,11 @@
-// app/api/explain/route.ts
-
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { NextResponse } from "next/server";
-import { kv } from "@vercel/kv"; // 1. Importe o Vercel KV
+import { kv } from "@vercel/kv";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 
 export async function POST(request: Request) {
   try {
-    // 2. Agora esperamos 'proposicaoId' e 'ementa'
     const { ementa, proposicaoId } = await request.json();
 
     if (!ementa || !proposicaoId) {
@@ -18,18 +15,13 @@ export async function POST(request: Request) {
       );
     }
 
-    // 3. Crie uma chave de cache única para esta proposição
     const cacheKey = `explanation:${proposicaoId}`;
 
-    // 4. TENTE BUSCAR DO CACHE PRIMEIRO
     const cachedExplanation = await kv.get<string>(cacheKey);
 
     if (cachedExplanation) {
-      // Se achou no cache, retorna direto! (Economia)
       return NextResponse.json({ explanation: cachedExplanation });
     }
-
-    // 5. SE NÃO ACHOU NO CACHE: Chame o Gemini
     const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
     const prompt = `
       Você é um assistente especialista em política brasileira.
