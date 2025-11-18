@@ -6,11 +6,13 @@ import { HiSparkles, HiExclamation } from "react-icons/hi";
 import ReactMarkdown from "react-markdown"; // 1. Importe o ReactMarkdown
 
 interface ProposicaoExplainerProps {
-  ementa: string; // O texto a ser explicado
+  ementa: string;
+  proposicaoId: string;
 }
 
 export const ProposicaoExplainer: React.FC<ProposicaoExplainerProps> = ({
   ementa,
+  proposicaoId,
 }) => {
   const [explanation, setExplanation] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -19,7 +21,6 @@ export const ProposicaoExplainer: React.FC<ProposicaoExplainerProps> = ({
   const handleExplain = async (e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
-
     setIsLoading(true);
     setError(null);
     setExplanation("");
@@ -28,7 +29,7 @@ export const ProposicaoExplainer: React.FC<ProposicaoExplainerProps> = ({
       const response = await fetch("/api/explain", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ementa: ementa }),
+        body: JSON.stringify({ ementa, proposicaoId }),
       });
 
       if (!response.ok) {

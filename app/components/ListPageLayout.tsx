@@ -31,7 +31,7 @@ const ItemContent: React.FC<{ item: ListItem }> = ({ item }) => (
       </p>
       {item.ementa && (
         <div className="mt-4">
-          <ProposicaoExplainer ementa={item.ementa} />
+          <ProposicaoExplainer ementa={item.ementa} proposicaoId={item.id} />
         </div>
       )}
     </div>
