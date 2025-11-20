@@ -2,45 +2,51 @@
 
 import React, { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { LoadingSpinner } from "../../components/UI/LoadingSpinner"; // Verifique o caminho
-import { ErrorMessage } from "../../components/UI/ErrorMessage"; // Verifique o caminho
+import { LoadingSpinner } from "../../components/UI/LoadingSpinner";
+import { ErrorMessage } from "../../components/UI/ErrorMessage";
 import {
   Card,
   Button,
   Table,
   Spinner,
-  TableBody,
   TableHead,
-  TableHeadCell,
+  TableBody,
   TableRow,
   TableCell,
   Label,
   Select,
+  Accordion, // Importação necessária
+  ListGroup,
+  AccordionPanel,
+  AccordionContent,
+  AccordionTitle,
+  TableHeadCell,
+  ListGroupItem,
+  Pagination,
+  Tooltip, // Para a lista de Histórico
 } from "flowbite-react";
 import { HiArrowLeft } from "react-icons/hi";
+import { FaHistory, FaEuroSign } from "react-icons/fa"; // Ícones para o Accordion
 import Image from "next/image";
-import { DeputadoDetalhes } from "@/app/types/deputados";
-import { getDeputadoById, getDeputadoDespesas } from "@/app/api/client";
+import { DeputadoDetalhes, Frente } from "@/app/types/deputados";
+import { Metadata } from "next";
+import {
+  getDeputadoById,
+  getDeputadoDespesas,
+  getFrentesDeputado,
+  getProposicoesDoDeputado,
+} from "@/app/api/client";
+import { LuCoins, LuHouse, LuText } from "react-icons/lu";
+import { Proposicoes } from "@/app/types/proposicoes";
+import Link from "next/link";
 
-/**
- * Helper para formatar moeda (R$)
- */
-const formatCurrency = (value: number) => {
-  return value.toLocaleString("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-  });
-};
-
-/**
- * Tipo para nossos dados agregados
- */
 interface AggregatedExpense {
   tipo: string;
   valor: number;
 }
+
 const currentYear = new Date().getFullYear();
-const years = Array.from({ length: 5 }, (_, i) => currentYear - i); // Últimos 5 anos
+const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
 const months = [
   { value: 1, name: "Janeiro" },
   { value: 2, name: "Fevereiro" },
@@ -55,6 +61,84 @@ const months = [
   { value: 11, name: "Novembro" },
   { value: 12, name: "Dezembro" },
 ];
+const formatCurrency = (value: number) =>
+  new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(
+    value,
+  );
+
+interface ProposicoesDeputadoListProps {
+  proposicoes: Proposicoes[];
+  isLoading: boolean;
+}
+
+const ProposicoesDeputadoList: React.FC<ProposicoesDeputadoListProps> = ({
+  proposicoes,
+  isLoading,
+}) => {
+  if (isLoading) {
+    return (
+      <div className="py-4 text-center">
+        <Spinner size="lg" />
+      </div>
+    );
+  }
+  if (proposicoes.length === 0) {
+    return (
+      <p className="text-gray-500 dark:text-gray-400">
+        Nenhuma proposição recente encontrada.
+      </p>
+    );
+  }
+
+  return (
+    <ListGroup className="w-full">
+      {proposicoes.map((prop) => (
+        <Link key={prop.id} href={`/proposicoes/${prop.id}`} passHref>
+          <ListGroupItem className="block! cursor-pointer p-4 hover:bg-gray-50 dark:hover:bg-gray-700">
+            <div className="flex flex-row justify-around">
+              <Tooltip content={prop.ementa} placement="bottom">
+                <p className="mt-1 line-clamp-2 cursor-help text-sm text-gray-700 dark:text-gray-300">
+                  {prop.ementa}
+                </p>
+              </Tooltip>
+              <div className="mb-1 flex flex-col sm:flex-row sm:items-baseline sm:justify-between">
+                <span className="text-sm text-blue-600 hover:underline sm:ml-auto">
+                  Ver Detalhes
+                </span>
+              </div>
+            </div>
+          </ListGroupItem>
+        </Link>
+      ))}
+    </ListGroup>
+  );
+};
+
+const FrentesList: React.FC<{ frentes: Frente[]; isLoading: boolean }> = ({
+  frentes,
+  isLoading,
+}) => {
+  if (frentes.length === 0 && !isLoading) {
+    return (
+      <p className="text-gray-500 dark:text-gray-400">
+        O deputado não está registrado em frentes ativas.
+      </p>
+    );
+  }
+
+  return (
+    <ListGroup className="w-full">
+      {frentes.map((frente) => (
+        <ListGroupItem key={frente.id}>
+          <div className="flex justify-start text-start font-semibold text-gray-900 dark:text-white">
+            {frente.titulo}
+          </div>
+        </ListGroupItem>
+      ))}
+    </ListGroup>
+  );
+};
+
 const DeputadoDetailPage: React.FC = () => {
   const params = useParams();
   const router = useRouter();
@@ -64,15 +148,27 @@ const DeputadoDetailPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // 3. Novos estados para os filtros
+  // Estados de Filtro de Despesas
   const [selectedAno, setSelectedAno] = useState(currentYear);
   const [selectedMes, setSelectedMes] = useState(new Date().getMonth() + 1);
 
+  // Estados de Despesas
   const [aggregatedDespesas, setAggregatedDespesas] = useState<
     AggregatedExpense[]
   >([]);
   const [isDespesasLoading, setIsDespesasLoading] = useState(true);
   const [currentMonthYear, setCurrentMonthYear] = useState("");
+
+  const [frentes, setFrentes] = useState<Frente[]>([]);
+  const [isFrentesLoading, setIsFrentesLoading] = useState(true);
+
+  const [frentesCurrentPage, setFrentesCurrentPage] = useState(1);
+  const frentesPerPage = 10;
+
+  const [proposicoesDeputado, setProposicoesDeputado] = useState<Proposicoes[]>(
+    [],
+  );
+  const [isProposicoesLoading, setIsProposicoesLoading] = useState(true);
 
   useEffect(() => {
     if (id) {
@@ -93,11 +189,13 @@ const DeputadoDetailPage: React.FC = () => {
       fetchDetalhes();
     }
   }, [id]);
+
+  // Efeito 2: Busca de Despesas (depende dos filtros - SEM MUDANÇAS)
   useEffect(() => {
     if (id) {
+      // ... (Lógica de fetch e agregação de despesas - MANTIDA) ...
       const fetchDespesas = async () => {
         setIsDespesasLoading(true);
-
         // Atualiza o título com base nos estados selecionados
         const dateForTitle = new Date(selectedAno, selectedMes - 1);
         setCurrentMonthYear(
@@ -108,42 +206,71 @@ const DeputadoDetailPage: React.FC = () => {
         );
 
         try {
-          // Busca usando os estados selecionados
           const despesasData = await getDeputadoDespesas(
             id,
             selectedAno,
             selectedMes,
           );
-
-          // Lógica de agregação (sem mudanças)
+          // Lógica de agregação
           const aggregated = despesasData.reduce(
             (acc, despesa) => {
               const tipo = despesa.tipoDespesa;
-              const valor = despesa.valorLiquido;
-              if (!acc[tipo]) {
-                acc[tipo] = 0;
-              }
-              acc[tipo] += valor;
+              acc[tipo] = (acc[tipo] || 0) + despesa.valorLiquido;
               return acc;
             },
             {} as Record<string, number>,
           );
-
           const aggregatedArray = Object.entries(aggregated)
             .map(([tipo, valor]) => ({ tipo, valor }))
             .sort((a, b) => b.valor - a.valor);
-
           setAggregatedDespesas(aggregatedArray);
         } catch (err) {
           console.error("Erro ao buscar despesas:", err);
-          setAggregatedDespesas([]); // Limpa em caso de erro
+          setAggregatedDespesas([]);
         } finally {
           setIsDespesasLoading(false);
         }
       };
       fetchDespesas();
     }
-  }, [id, selectedAno, selectedMes]); // 5. Adicione os filtros às dependências
+  }, [id, selectedAno, selectedMes]);
+
+  // NOVO EFEITO: Busca de Frentes Parlamentares
+  useEffect(() => {
+    if (id) {
+      const fetchFrentes = async () => {
+        setIsFrentesLoading(true); // Liga o novo loading
+        try {
+          const frentesData = await getFrentesDeputado(id); // Chama a nova função
+          setFrentes(frentesData);
+        } catch (err) {
+          console.error("Erro ao buscar frentes:", err);
+          setFrentes([]);
+        } finally {
+          setIsFrentesLoading(false); // Desliga o novo loading
+        }
+      };
+      fetchFrentes();
+    }
+  }, [id]);
+
+  useEffect(() => {
+    if (id) {
+      const fetchProposicoes = async () => {
+        setIsProposicoesLoading(true);
+        try {
+          const proposicoesData = await getProposicoesDoDeputado(id);
+          setProposicoesDeputado(proposicoesData);
+        } catch (err) {
+          console.error("Erro ao buscar proposições:", err);
+          setProposicoesDeputado([]);
+        } finally {
+          setIsProposicoesLoading(false);
+        }
+      };
+      fetchProposicoes();
+    }
+  }, [id]);
   const renderContent = () => {
     if (isLoading) {
       return <LoadingSpinner />;
@@ -157,10 +284,20 @@ const DeputadoDetailPage: React.FC = () => {
 
     const { ultimoStatus, dataNascimento, escolaridade } = deputado;
     const { gabinete } = ultimoStatus;
+    const totalDespesasAgregado = aggregatedDespesas.reduce(
+      (sum, d) => sum + d.valor,
+      0,
+    );
+    const totalFrentesPages = Math.ceil(frentes.length / frentesPerPage);
+    const indexOfLastFrente = frentesCurrentPage * frentesPerPage;
+    const indexOfFirstFrente = indexOfLastFrente - frentesPerPage;
+    // Pega apenas o slice da lista de frentes para a página atual
+    const currentFrentes = frentes.slice(indexOfFirstFrente, indexOfLastFrente);
 
     return (
       <Card className="w-full max-w-3xl">
         <div className="flex flex-col items-center pb-10">
+          {/* Foto e Nome (Topo) */}
           <Image
             src={ultimoStatus.urlFoto}
             alt={`Foto de ${ultimoStatus.nome}`}
@@ -181,7 +318,7 @@ const DeputadoDetailPage: React.FC = () => {
             </span>
           </div>
 
-          {/* Seções de Informações com Divisor */}
+          {/* Seções de Informações Pessoais (Acima do Accordion) */}
           <div className="mt-6 w-full divide-y divide-gray-200 text-left dark:divide-gray-700">
             {/* Informações Pessoais */}
             <div className="py-4">
@@ -205,6 +342,7 @@ const DeputadoDetailPage: React.FC = () => {
               </ul>
             </div>
 
+            {/* Gabinete */}
             {gabinete && (
               <div className="py-4">
                 <h6 className="mb-2 font-semibold text-gray-900 dark:text-white">
@@ -221,81 +359,166 @@ const DeputadoDetailPage: React.FC = () => {
                 </ul>
               </div>
             )}
+          </div>
 
-            {/* NOVA SEÇÃO: Despesas */}
-            <div className="py-4">
-              <h6 className="mb-2 font-semibold text-gray-900 dark:text-white">
-                Resumo de Despesas ({currentMonthYear})
-              </h6>
-              <div className="mb-4 grid grid-cols-2 gap-4">
-                <div>
-                  <div className="mb-2 block">
-                    <Label htmlFor="mes">Mês</Label>
+          {/* 3. ACCORDION PRINCIPAL */}
+          <div className="mt-6 w-full">
+            <Accordion alwaysOpen collapseAll>
+              {/* Painel 1: Despesas */}
+              <AccordionPanel>
+                <AccordionTitle className="flex items-center">
+                  <LuCoins className="mr-3 h-4 w-4" />
+                  Despesas (Cota Parlamentar)
+                  <span className="ml-auto text-sm font-normal text-gray-500">
+                    {formatCurrency(totalDespesasAgregado)} em{" "}
+                    {currentMonthYear}
+                  </span>
+                </AccordionTitle>
+                <AccordionContent>
+                  <p className="mb-4 text-sm text-gray-700 dark:text-gray-300">
+                    A Cota para o Exercício da Atividade Parlamentar (CEAP) visa
+                    ressarcir despesas como passagens aéreas, combustível e
+                    manutenção de escritórios.
+                  </p>
+
+                  {/* Filtros */}
+                  <div className="mb-4 grid grid-cols-2 gap-4">
+                    <div>
+                      <div className="mb-2 block">
+                        <Label htmlFor="mes">Mês</Label>
+                      </div>
+                      <Select
+                        id="mes"
+                        value={selectedMes}
+                        onChange={(e) => setSelectedMes(Number(e.target.value))}
+                        disabled={isDespesasLoading}
+                      >
+                        {months.map((m) => (
+                          <option key={m.value} value={m.value}>
+                            {m.name}
+                          </option>
+                        ))}
+                      </Select>
+                    </div>
+                    <div>
+                      <div className="mb-2 block">
+                        <Label htmlFor="ano">Ano</Label>
+                      </div>
+                      <Select
+                        id="ano"
+                        value={selectedAno}
+                        onChange={(e) => setSelectedAno(Number(e.target.value))}
+                        disabled={isDespesasLoading}
+                      >
+                        {years.map((y) => (
+                          <option key={y} value={y}>
+                            {y}
+                          </option>
+                        ))}
+                      </Select>
+                    </div>
                   </div>
-                  <Select
-                    id="mes"
-                    value={selectedMes}
-                    onChange={(e) => setSelectedMes(Number(e.target.value))}
-                    disabled={isDespesasLoading} // Desativa durante o load
-                  >
-                    {months.map((m) => (
-                      <option key={m.value} value={m.value}>
-                        {m.name}
-                      </option>
-                    ))}
-                  </Select>
-                </div>
-                <div>
-                  <div className="mb-2 block">
-                    <Label htmlFor="ano">Ano</Label>
-                  </div>
-                  <Select
-                    id="ano"
-                    value={selectedAno}
-                    onChange={(e) => setSelectedAno(Number(e.target.value))}
-                    disabled={isDespesasLoading} // Desativa durante o load
-                  >
-                    {years.map((y) => (
-                      <option key={y} value={y}>
-                        {y}
-                      </option>
-                    ))}
-                  </Select>
-                </div>
-              </div>
-              {isDespesasLoading ? (
-                <div className="flex items-center text-sm text-gray-500 dark:text-gray-400">
-                  <Spinner size="sm" />
-                  <span className="ml-2">Carregando despesas...</span>
-                </div>
-              ) : aggregatedDespesas.length > 0 ? (
-                <div className="overflow-x-auto">
-                  <Table striped hoverable className="text-sm">
-                    <TableHead>
-                      <TableHeadCell>Tipo de Despesa</TableHeadCell>
-                      <TableHeadCell>Valor Total</TableHeadCell>
-                    </TableHead>
-                    <TableBody className="divide-y">
-                      {aggregatedDespesas.map((despesa) => (
-                        <TableRow
-                          key={despesa.tipo}
-                          className="bg-white dark:border-gray-700 dark:bg-gray-800"
-                        >
-                          <TableCell className="font-medium text-gray-900 dark:text-white">
-                            {despesa.tipo}
-                          </TableCell>
-                          <TableCell>{formatCurrency(despesa.valor)}</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              ) : (
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                  Nenhuma despesa registrada para este mês.
-                </p>
-              )}
-            </div>
+
+                  {/* Tabela de Despesas */}
+                  {isDespesasLoading ? (
+                    <div className="flex items-center text-sm text-gray-500 dark:text-gray-400">
+                      <Spinner size="sm" />
+                      <span className="ml-2">Carregando despesas...</span>
+                    </div>
+                  ) : aggregatedDespesas.length > 0 ? (
+                    <div className="overflow-x-auto">
+                      <Table striped hoverable className="text-sm">
+                        <TableHead>
+                          <TableRow>
+                            {/* CORREÇÃO: Use Table.HeadCell */}
+                            <TableHeadCell>Tipo de Despesa</TableHeadCell>
+                            <TableHeadCell>Valor Total</TableHeadCell>
+                          </TableRow>
+                        </TableHead>
+
+                        {/* CORREÇÃO: Use Table.Body */}
+                        <TableBody className="divide-y">
+                          {aggregatedDespesas.map((despesa) => (
+                            <TableRow
+                              key={despesa.tipo}
+                              className="bg-white dark:border-gray-700 dark:bg-gray-800"
+                            >
+                              <TableCell className="font-medium text-gray-900 dark:text-white">
+                                {despesa.tipo}
+                              </TableCell>
+                              <TableCell>
+                                {formatCurrency(despesa.valor)}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                      Nenhuma despesa registrada para {currentMonthYear}.
+                    </p>
+                  )}
+                </AccordionContent>
+              </AccordionPanel>
+
+              {/* Painel 2: Histórico de Ocupações */}
+              <AccordionPanel>
+                <AccordionTitle className="flex items-center">
+                  <LuHouse className="mr-3 h-4 w-4" />
+                  Frentes Parlamentares
+                </AccordionTitle>
+                <AccordionContent>
+                  <p className="mb-4 text-sm text-gray-700 dark:text-gray-300">
+                    Grupos de deputados de diversos partidos unidos por um
+                    interesse comum. A adesão reflete a área de atuação e foco
+                    do parlamentar.
+                  </p>
+                  {isFrentesLoading ? (
+                    <div className="flex items-center text-sm text-gray-500 dark:text-gray-400">
+                      <Spinner size="sm" />
+                      <span className="ml-2">Carregando frentes...</span>
+                    </div>
+                  ) : (
+                    <>
+                      {/* Renderiza a lista fatiada (apenas 10 itens) */}
+                      <FrentesList
+                        frentes={currentFrentes}
+                        isLoading={isFrentesLoading}
+                      />
+
+                      {/* --- PAGINAÇÃO DE FRENTES --- */}
+                      {frentes.length > frentesPerPage && (
+                        <div className="mt-4 flex overflow-x-auto sm:justify-center">
+                          <Pagination
+                            currentPage={frentesCurrentPage}
+                            totalPages={totalFrentesPages}
+                            onPageChange={setFrentesCurrentPage} // Atualiza o estado da página
+                            showIcons
+                          />
+                        </div>
+                      )}
+                    </>
+                  )}
+                </AccordionContent>
+              </AccordionPanel>
+              <AccordionPanel>
+                <AccordionTitle className="flex items-center">
+                  <LuText className="mr-3 h-4 w-4" />
+                  Proposições Apresentadas
+                </AccordionTitle>
+                <AccordionContent>
+                  <p className="mb-4 text-sm text-gray-700 dark:text-gray-300">
+                    Últimos projetos de lei, PECs e outras proposições nas quais
+                    o deputado é autor ou co-autor.
+                  </p>
+                  <ProposicoesDeputadoList
+                    proposicoes={proposicoesDeputado}
+                    isLoading={isProposicoesLoading}
+                  />
+                </AccordionContent>
+              </AccordionPanel>
+            </Accordion>
           </div>
         </div>
       </Card>

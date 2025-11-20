@@ -13,11 +13,11 @@ import {
   Deputado,
   DeputadoDetalhes,
   Despesa,
+  Frente,
 } from "../types/deputados";
 import { Autor, CamaraApiAutoresResponse } from "../types/autores";
 
-const BASE_URL = "https://dadosabertos.camara.leg.br/api/v2";
-
+const BASE_URL = "/api/camara";
 // --- Tipos de Resposta ---
 interface CamaraApiResponse<T> {
   dados: T[];
@@ -211,4 +211,42 @@ export async function getDeputadoDespesas(
 
   const data: CamaraApiDespesasResponse = await response.json();
   return data.dados;
+}
+
+export async function getFrentesDeputado(
+  idDeputado: string,
+): Promise<Frente[]> {
+  const url = `${BASE_URL}/deputados/${idDeputado}/frentes`;
+
+  const response = await fetch(url, {
+    headers: { Accept: "application/json" },
+    next: { revalidate: 3600 }, // Cache de 1h
+  });
+
+  if (!response.ok) {
+    console.error(`Falha ao buscar frentes. URL: ${url}`);
+    // Retorna um array vazio em caso de erro para evitar quebrar a página
+    return [];
+  }
+  const data = await response.json();
+  return data.dados || [];
+}
+
+export async function getProposicoesDoDeputado(
+  idDeputado: string,
+): Promise<Proposicoes[]> {
+  // Usamos o ID do autor na query. Ordenamos por ID (que é estável e pega as mais recentes).
+  const url = `${BASE_URL}/proposicoes?idDeputadoAutor=${idDeputado}&ordem=DESC&ordenarPor=id&itens=10`;
+
+  const response = await fetch(url, {
+    headers: { Accept: "application/json" },
+    next: { revalidate: 3600 },
+  });
+
+  if (!response.ok) {
+    console.error(`Falha ao buscar proposições do deputado ${idDeputado}`);
+    return [];
+  }
+  const data = await response.json();
+  return data.dados || [];
 }

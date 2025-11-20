@@ -33,7 +33,8 @@ export interface DeputadoDetalhes {
   cpf: string;
   dataNascimento: string;
   escolaridade: string;
-  // ... outros campos
+  siglaPartido: string;
+  siglaUf: string;
 }
 export interface Despesa {
   ano: number;
@@ -49,4 +50,11 @@ export interface Despesa {
 
 interface CamaraApiDespesasResponse {
   dados: Despesa[];
+}
+
+export interface Frente {
+  id: number;
+  titulo: string;
+  idLegislatura: number;
+  uri: string;
 }
