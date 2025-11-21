@@ -1,5 +1,3 @@
-// app/services/camaraAPI.ts
-
 import {
   CamaraApiVotacoesResponse,
   CamaraApiVotosResponse,
@@ -18,7 +16,6 @@ import {
 import { Autor, CamaraApiAutoresResponse } from "../types/autores";
 
 const BASE_URL = "/api/camara";
-// --- Tipos de Resposta ---
 interface CamaraApiResponse<T> {
   dados: T[];
   links: { rel: string; href: string }[];
@@ -26,42 +23,29 @@ interface CamaraApiResponse<T> {
 
 export interface PaginatedResponse<T> {
   items: T[];
-  totalPages: number; // Voltamos a ter o totalPages!
+  totalPages: number;
 }
 
 interface CamaraApiSingularResponse<T> {
-  dados: T; // A resposta singular não é um array
+  dados: T;
 }
 
-/**
- * Helper para extrair o número total de páginas
- * do link "last" da API.
- */
 function parseTotalPages(links: { rel: string; href: string }[]): number {
   const lastLink = links.find((link) => link.rel === "last");
 
-  // Fallback: Se não houver link "last", assumimos que há apenas 1 página
   if (!lastLink) {
-    // Se não há "last", mas há "prev", significa que estamos na página 1 e não há outras.
-    // Se não há "last" nem "prev", também é página 1.
     return 1;
   }
 
   try {
     const url = new URL(lastLink.href);
     const totalPages = url.searchParams.get("pagina");
-    // Garante que retornamos um número, com fallback para 1
     return totalPages ? parseInt(totalPages, 10) : 1;
   } catch (error) {
     console.error("Falha ao parsear total de páginas do link 'last'", error);
-    return 1; // Retorna 1 em caso de erro
+    return 1;
   }
 }
-
-/**
- * Função genérica ATUALIZADA para fazer o fetch na API
- * Retorna um objeto PaginatedResponse
- */
 async function fetchCamaraAPI<T>(
   endpoint: string,
 ): Promise<PaginatedResponse<T>> {
@@ -78,7 +62,6 @@ async function fetchCamaraAPI<T>(
 
   const data: CamaraApiResponse<T> = await response.json();
 
-  // Extrai o total de páginas dos links
   const totalPages = parseTotalPages(data.links);
 
   return {
@@ -113,14 +96,10 @@ export async function getProposicoes(
   return fetchCamaraAPI<Proposicoes>(endpoint);
 }
 
-/**
- * Busca deputados (PAGINADO E COM BUSCA)
- */
 export async function getDeputados(
   pagina: number,
-  searchTerm: string, // Novo parâmetro
+  searchTerm: string,
 ): Promise<PaginatedResponse<Deputado>> {
-  // Adiciona o termo de busca apenas se ele não for vazio
   const searchParam = searchTerm
     ? `&nome=${encodeURIComponent(searchTerm)}`
     : "";
@@ -141,7 +120,6 @@ export async function getProposicaoById(
   return fetchCamaraAPISingular<ProposicaoDetalhes>(endpoint);
 }
 export async function getAutoresProposicao(uri: string): Promise<Autor[]> {
-  // Esta 'uri' é uma URL completa, então fazemos o fetch direto
   const response = await fetch(uri, {
     headers: {
       Accept: "application/json",
@@ -197,12 +175,11 @@ export async function getDeputadoDespesas(
   ano: number,
   mes: number,
 ): Promise<Despesa[]> {
-  // Pedimos até 100 lançamentos no mês, ordenados por data
   const endpoint = `/deputados/${id}/despesas?ano=${ano}&mes=${mes}&ordem=DESC&ordenarPor=dataDocumento&itens=100`;
 
   const response = await fetch(BASE_URL + endpoint, {
     headers: { Accept: "application/json" },
-    next: { revalidate: 3600 }, // Cache de 1h
+    next: { revalidate: 3600 },
   });
 
   if (!response.ok) {
@@ -220,12 +197,11 @@ export async function getFrentesDeputado(
 
   const response = await fetch(url, {
     headers: { Accept: "application/json" },
-    next: { revalidate: 3600 }, // Cache de 1h
+    next: { revalidate: 3600 },
   });
 
   if (!response.ok) {
     console.error(`Falha ao buscar frentes. URL: ${url}`);
-    // Retorna um array vazio em caso de erro para evitar quebrar a página
     return [];
   }
   const data = await response.json();
@@ -235,7 +211,6 @@ export async function getFrentesDeputado(
 export async function getProposicoesDoDeputado(
   idDeputado: string,
 ): Promise<Proposicoes[]> {
-  // Usamos o ID do autor na query. Ordenamos por ID (que é estável e pega as mais recentes).
   const url = `${BASE_URL}/proposicoes?idDeputadoAutor=${idDeputado}&ordem=DESC&ordenarPor=id&itens=10`;
 
   const response = await fetch(url, {

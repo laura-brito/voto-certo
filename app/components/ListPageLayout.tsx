@@ -52,15 +52,12 @@ export const ListPageLayout: React.FC<ListPageLayoutProps> = ({
   }, [initialSearchTerm]);
 
   useEffect(() => {
-    // Se o que o usuário digitou for DIFERENTE do que está na URL...
     if (inputValue !== initialSearchTerm) {
-      // ...inicie o timer para atualizar a URL.
       const timer = setTimeout(() => {
         onSearchSubmit(inputValue);
-      }, 500); // 500ms debounce
+      }, 500);
       return () => clearTimeout(timer);
     }
-    // Se for igual, não faça nada (evita busca ao clicar em "Voltar")
   }, [inputValue, initialSearchTerm, onSearchSubmit]);
 
   const cardClasses =
