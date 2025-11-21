@@ -2,9 +2,9 @@
 
 import React, { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import Link from "next/link"; // Importe o Link do Next.js
-import { LoadingSpinner } from "../../components/UI/LoadingSpinner"; // Verifique o caminho
-import { ErrorMessage } from "../../components/UI/ErrorMessage"; // Verifique o caminho
+import Link from "next/link";
+import { LoadingSpinner } from "../../components/UI/LoadingSpinner";
+import { ErrorMessage } from "../../components/UI/ErrorMessage";
 import {
   Card,
   Button,
@@ -20,8 +20,8 @@ import {
   HiArrowLeft,
   HiOutlineCalendar,
   HiOutlineUser,
-  HiCheckCircle, // Ícone para "Sim"
-  HiXCircle, // Ícone para "Não"
+  HiCheckCircle,
+  HiXCircle,
 } from "react-icons/hi";
 import {
   ProposicaoDetalhes,
@@ -364,7 +364,6 @@ const ProposicaoDetailPage: React.FC = () => {
           <ModalHeader />
           <ModalBody>
             <div className="flex flex-col items-center text-center">
-              {/* 3. SUBSTITUIÇÃO AQUI TAMBÉM: Avatar Grande no Modal */}
               <Avatar
                 img={selectedAutor?.urlFoto}
                 alt={`Foto de ${selectedAutor?.nome}`}

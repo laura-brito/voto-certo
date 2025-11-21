@@ -11,10 +11,9 @@ import {
 import { ListItem } from "../types/ListItem";
 import { usePaginatedApi } from "../hooks/usePaginatedApi";
 import { Pagination, Label } from "flowbite-react";
-import ReactSelect, { SingleValue, ActionMeta, MultiValue } from "react-select";
+import ReactSelect, { MultiValue } from "react-select";
 import { getProposicoes, getTemas, getTiposProposicao } from "../api/client";
 
-// Interface para as opções do React Select
 interface SelectOption {
   value: string;
   label: string;

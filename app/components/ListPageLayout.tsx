@@ -13,7 +13,39 @@ interface ListPageLayoutProps {
   error: string | null;
   initialSearchTerm: string;
 }
+const DescriptionWithReadMore: React.FC<{ text: string; limit?: number }> = ({
+  text,
+  limit = 180, // Limite padrão de caracteres
+}) => {
+  const [isExpanded, setIsExpanded] = useState(false);
 
+  if (!text) return null;
+
+  // Se o texto for curto, exibe normalmente
+  if (text.length <= limit) {
+    return <p className="text-sm text-gray-700 dark:text-gray-300">{text}</p>;
+  }
+
+  const toggleReadMore = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsExpanded(!isExpanded);
+  };
+
+  return (
+    <div className="text-sm text-gray-700 dark:text-gray-300">
+      <p className="inline">
+        {isExpanded ? text : `${text.substring(0, limit).trim()}...`}
+      </p>
+      <button
+        onClick={toggleReadMore}
+        className="ml-2 inline-flex items-center font-medium text-blue-600 hover:underline focus:outline-none dark:text-blue-500"
+      >
+        {isExpanded ? "Ler menos" : "Ler mais"}
+      </button>
+    </div>
+  );
+};
 const ItemContent: React.FC<{ item: ListItem }> = ({ item }) => (
   <>
     <div className="flex h-12 w-12 shrink-0 items-center justify-center">
@@ -26,9 +58,10 @@ const ItemContent: React.FC<{ item: ListItem }> = ({ item }) => (
       <p className="mb-1 text-sm text-gray-500 dark:text-gray-400">
         {item.author}
       </p>
-      <p className="text-sm text-gray-700 dark:text-gray-300">
+      {/* <p className="text-sm text-gray-700 dark:text-gray-300">
         {item.description}
-      </p>
+      </p> */}
+      <DescriptionWithReadMore text={item.description} />
       {item.ementa && (
         <div className="mt-4">
           <ProposicaoExplainer ementa={item.ementa} proposicaoId={item.id} />
