@@ -185,7 +185,7 @@ const ProposicaoDetailPage: React.FC = () => {
       return <LoadingSpinner />;
     }
     if (error) {
-      return <ErrorMessage error={error} onRetry={onRetry} />;
+      return <ErrorMessage error={error} />;
     }
 
     if (!proposicao) {
