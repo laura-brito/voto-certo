@@ -137,6 +137,7 @@ export async function getProposicaoById(
   return fetchCamaraAPISingular<ProposicaoDetalhes>(endpoint);
 }
 export async function getAutoresProposicao(uri: string): Promise<Autor[]> {
+  // 1. Busca a lista inicial de autores
   const response = await fetch(uri, {
     headers: {
       Accept: "application/json",
@@ -149,9 +150,44 @@ export async function getAutoresProposicao(uri: string): Promise<Autor[]> {
   }
 
   const data: CamaraApiAutoresResponse = await response.json();
-  return data.dados;
-}
+  const autores = data.dados;
 
+  // 2. "Enriquece" os dados buscando os detalhes de cada deputado
+  // Usamos Promise.all para fazer as requisições em paralelo
+  const autoresEnriquecidos = await Promise.all(
+    autores.map(async (autor) => {
+      // Só buscamos detalhes se for Deputado e tiver uma URI válida
+      if (autor.tipo === "Deputado(a)" && autor.uri) {
+        try {
+          const depResponse = await fetch(autor.uri, {
+            headers: { Accept: "application/json" },
+            next: { revalidate: 86400 }, // Cache de 24h para detalhes do deputado
+          });
+
+          if (depResponse.ok) {
+            const depData = await depResponse.json();
+            const detalhes: DeputadoDetalhes = depData.dados;
+
+            // Retorna o autor com os dados extras mesclados
+            return {
+              ...autor,
+              siglaPartido: detalhes.ultimoStatus.siglaPartido,
+              siglaUf: detalhes.ultimoStatus.siglaUf,
+            };
+          }
+        } catch (error) {
+          console.error(
+            `Erro ao buscar detalhes do autor ${autor.nome}`,
+            error,
+          );
+        }
+      }
+      return autor;
+    }),
+  );
+
+  return autoresEnriquecidos;
+}
 export async function getVotacoesDaProposicao(
   proposicaoId: string,
 ): Promise<Votacao[]> {

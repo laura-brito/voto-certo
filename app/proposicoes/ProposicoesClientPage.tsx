@@ -35,11 +35,9 @@ const ProposicoesClientPage: React.FC = () => {
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  // Estados para as listas de referência
   const [temas, setTemas] = useState<ReferenciaTema[]>([]);
   const [tipos, setTipos] = useState<ReferenciaTipoProposicao[]>([]);
 
-  // Carrega as referências ao montar a página
   useEffect(() => {
     const fetchRefs = async () => {
       try {

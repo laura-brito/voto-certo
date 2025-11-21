@@ -229,7 +229,9 @@ const ProposicaoDetailPage: React.FC = () => {
             <p className="mb-4 text-sm text-gray-700 dark:text-gray-300">
               {proposicao.ementa}
             </p>
-
+            <p className="mb-4 text-sm text-gray-700 dark:text-gray-300">
+              {proposicao.ementaDetalhada}
+            </p>
             {/* 2. Adicione o ProposicaoExplainer aqui */}
             <ProposicaoExplainer
               ementa={proposicao.ementa}
@@ -255,7 +257,12 @@ const ProposicaoDetailPage: React.FC = () => {
                       className="cursor-pointer text-blue-600 hover:underline dark:text-blue-500"
                       onClick={() => handleAutorClick(autor)}
                     >
-                      {autor.nome} ({autor.tipo})
+                      {autor.nome}
+                      {autor.siglaPartido
+                        ? ` (${autor.siglaPartido}${
+                            autor.siglaUf ? `-${autor.siglaUf}` : ""
+                          })`
+                        : ` (${autor.tipo})`}
                     </li>
                   ))
                 ) : (

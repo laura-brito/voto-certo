@@ -11,6 +11,7 @@ export interface Proposicoes {
   numero: number;
   ano: number;
   ementa: string;
+  ementaDetalhada: string;
   dataApresentacao: string;
 }
 
@@ -27,6 +28,7 @@ export interface ProposicaoDetalhes {
   numero: number;
   ano: number;
   ementa: string;
+  ementaDetalhada: string;
   dataApresentacao: string;
   uriAutores: string; // CORREÇÃO: Esta é a string que você nos mostrou
   statusProposicao: {
