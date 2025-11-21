@@ -58,9 +58,7 @@ const ItemContent: React.FC<{ item: ListItem }> = ({ item }) => (
       <p className="mb-1 text-sm text-gray-500 dark:text-gray-400">
         {item.author}
       </p>
-      {/* <p className="text-sm text-gray-700 dark:text-gray-300">
-        {item.description}
-      </p> */}
+
       <DescriptionWithReadMore text={item.description} />
       {item.ementa && (
         <div className="mt-4">

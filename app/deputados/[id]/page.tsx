@@ -15,28 +15,29 @@ import {
   TableCell,
   Label,
   Select,
-  Accordion, // Importação necessária
-  ListGroup,
+  Accordion,
   AccordionPanel,
-  AccordionContent,
   AccordionTitle,
+  AccordionContent,
   TableHeadCell,
-  ListGroupItem,
   Pagination,
-  Tooltip, // Para a lista de Histórico
 } from "flowbite-react";
-import { HiArrowLeft } from "react-icons/hi";
+import {
+  HiArrowLeft,
+  HiOutlineDocumentText,
+  HiChevronRight,
+} from "react-icons/hi";
+import { LuCoins, LuHouse, LuText } from "react-icons/lu";
 import Image from "next/image";
+import Link from "next/link";
 import { DeputadoDetalhes, Frente } from "@/app/types/deputados";
+import { Proposicoes } from "@/app/types/proposicoes";
 import {
   getDeputadoById,
   getDeputadoDespesas,
   getFrentesDeputado,
   getProposicoesDoDeputado,
 } from "@/app/api/client";
-import { LuCoins, LuHouse, LuText } from "react-icons/lu";
-import { Proposicoes } from "@/app/types/proposicoes";
-import Link from "next/link";
 
 interface AggregatedExpense {
   tipo: string;
@@ -75,40 +76,58 @@ const ProposicoesDeputadoList: React.FC<ProposicoesDeputadoListProps> = ({
 }) => {
   if (isLoading) {
     return (
-      <div className="py-4 text-center">
+      <div className="flex flex-col items-center justify-center py-8 text-gray-500 dark:text-gray-400">
         <Spinner size="lg" />
+        <span className="mt-3 text-sm">Carregando proposições...</span>
       </div>
     );
   }
-  if (proposicoes.length === 0) {
+
+  if (!proposicoes || proposicoes.length === 0) {
     return (
-      <p className="text-gray-500 dark:text-gray-400">
-        Nenhuma proposição recente encontrada.
-      </p>
+      <div className="rounded-lg border border-gray-200 bg-gray-50 p-8 text-center dark:border-gray-700 dark:bg-gray-800">
+        <p className="text-gray-500 dark:text-gray-400">
+          Nenhuma proposição encontrada para este período.
+        </p>
+      </div>
     );
   }
 
   return (
-    <ListGroup className="w-full">
+    <div className="space-y-3">
       {proposicoes.map((prop) => (
-        <Link key={prop.id} href={`/proposicoes/${prop.id}`} passHref>
-          <ListGroupItem className="block! cursor-pointer p-4 hover:bg-gray-50 dark:hover:bg-gray-700">
-            <div className="flex flex-row justify-around">
-              <Tooltip content={prop.ementa} placement="bottom">
-                <p className="mt-1 line-clamp-2 cursor-help text-sm text-gray-700 dark:text-gray-300">
-                  {prop.ementa}
-                </p>
-              </Tooltip>
-              <div className="mb-1 flex flex-col sm:flex-row sm:items-baseline sm:justify-between">
-                <span className="text-sm text-blue-600 hover:underline sm:ml-auto">
-                  Ver Detalhes
+        <Link
+          key={prop.id}
+          href={`/proposicoes/${prop.id}`}
+          className="group dark:hover:bg-gray-750 flex items-start gap-4 rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition-all duration-200 hover:border-blue-300 hover:bg-blue-50 hover:shadow-md dark:border-gray-700 dark:bg-gray-800 dark:hover:border-blue-700"
+        >
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-100 text-blue-600 transition-colors group-hover:bg-blue-200 group-hover:text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
+            <HiOutlineDocumentText className="h-6 w-6" />
+          </div>
+
+          <div className="min-w-0 flex-1">
+            <div className="mb-1 flex items-center justify-between">
+              <h4 className="truncate text-base font-bold text-gray-900 transition-colors group-hover:text-blue-700 dark:text-white dark:group-hover:text-blue-400">
+                {prop.siglaTipo} {prop.numero}/{prop.ano}
+              </h4>
+              {prop.dataApresentacao && (
+                <span className="shrink-0 rounded bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-500 dark:bg-gray-700 dark:text-gray-400">
+                  {new Date(prop.dataApresentacao).toLocaleDateString("pt-BR")}
                 </span>
-              </div>
+              )}
             </div>
-          </ListGroupItem>
+
+            <p className="line-clamp-2 text-sm text-gray-600 dark:text-gray-300">
+              {prop.ementa}
+            </p>
+          </div>
+
+          <div className="flex h-full items-center justify-center text-gray-300 transition-colors group-hover:text-blue-500 dark:text-gray-600">
+            <HiChevronRight className="h-5 w-5" />
+          </div>
         </Link>
       ))}
-    </ListGroup>
+    </div>
   );
 };
 
@@ -125,15 +144,16 @@ const FrentesList: React.FC<{ frentes: Frente[]; isLoading: boolean }> = ({
   }
 
   return (
-    <ListGroup className="w-full">
+    <div className="divide-y divide-gray-200 rounded-lg border border-gray-200 dark:divide-gray-700 dark:border-gray-700">
       {frentes.map((frente) => (
-        <ListGroupItem key={frente.id}>
-          <div className="flex justify-start text-start font-semibold text-gray-900 dark:text-white">
-            {frente.titulo}
-          </div>
-        </ListGroupItem>
+        <div
+          key={frente.id}
+          className="bg-white p-3 text-sm font-medium text-gray-900 dark:bg-gray-800 dark:text-white"
+        >
+          {frente.titulo}
+        </div>
       ))}
-    </ListGroup>
+    </div>
   );
 };
 
@@ -146,11 +166,8 @@ const DeputadoDetailPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Estados de Filtro de Despesas
   const [selectedAno, setSelectedAno] = useState(currentYear);
   const [selectedMes, setSelectedMes] = useState(new Date().getMonth() + 1);
-
-  // Estados de Despesas
   const [aggregatedDespesas, setAggregatedDespesas] = useState<
     AggregatedExpense[]
   >([]);
@@ -159,14 +176,15 @@ const DeputadoDetailPage: React.FC = () => {
 
   const [frentes, setFrentes] = useState<Frente[]>([]);
   const [isFrentesLoading, setIsFrentesLoading] = useState(true);
-
   const [frentesCurrentPage, setFrentesCurrentPage] = useState(1);
-  const frentesPerPage = 10;
+  const frentesPerPage = 5;
 
   const [proposicoesDeputado, setProposicoesDeputado] = useState<Proposicoes[]>(
     [],
   );
   const [isProposicoesLoading, setIsProposicoesLoading] = useState(true);
+  const [proposicoesPage, setProposicoesPage] = useState(1);
+  const [totalProposicoesPages, setTotalProposicoesPages] = useState(1);
 
   useEffect(() => {
     if (id) {
@@ -188,13 +206,10 @@ const DeputadoDetailPage: React.FC = () => {
     }
   }, [id]);
 
-  // Efeito 2: Busca de Despesas (depende dos filtros - SEM MUDANÇAS)
   useEffect(() => {
     if (id) {
-      // ... (Lógica de fetch e agregação de despesas - MANTIDA) ...
       const fetchDespesas = async () => {
         setIsDespesasLoading(true);
-        // Atualiza o título com base nos estados selecionados
         const dateForTitle = new Date(selectedAno, selectedMes - 1);
         setCurrentMonthYear(
           dateForTitle.toLocaleString("pt-BR", {
@@ -209,7 +224,6 @@ const DeputadoDetailPage: React.FC = () => {
             selectedAno,
             selectedMes,
           );
-          // Lógica de agregação
           const aggregated = despesasData.reduce(
             (acc, despesa) => {
               const tipo = despesa.tipoDespesa;
@@ -233,19 +247,18 @@ const DeputadoDetailPage: React.FC = () => {
     }
   }, [id, selectedAno, selectedMes]);
 
-  // NOVO EFEITO: Busca de Frentes Parlamentares
   useEffect(() => {
     if (id) {
       const fetchFrentes = async () => {
-        setIsFrentesLoading(true); // Liga o novo loading
+        setIsFrentesLoading(true);
         try {
-          const frentesData = await getFrentesDeputado(id); // Chama a nova função
+          const frentesData = await getFrentesDeputado(id);
           setFrentes(frentesData);
         } catch (err) {
           console.error("Erro ao buscar frentes:", err);
           setFrentes([]);
         } finally {
-          setIsFrentesLoading(false); // Desliga o novo loading
+          setIsFrentesLoading(false);
         }
       };
       fetchFrentes();
@@ -257,8 +270,9 @@ const DeputadoDetailPage: React.FC = () => {
       const fetchProposicoes = async () => {
         setIsProposicoesLoading(true);
         try {
-          const proposicoesData = await getProposicoesDoDeputado(id);
-          setProposicoesDeputado(proposicoesData);
+          const response = await getProposicoesDoDeputado(id, proposicoesPage);
+          setProposicoesDeputado(response.items);
+          setTotalProposicoesPages(response.totalPages);
         } catch (err) {
           console.error("Erro ao buscar proposições:", err);
           setProposicoesDeputado([]);
@@ -268,17 +282,19 @@ const DeputadoDetailPage: React.FC = () => {
       };
       fetchProposicoes();
     }
-  }, [id]);
+  }, [id, proposicoesPage]);
+
+  // Handler seguro para paginação
+  const handleProposicoesPageChange = (page: number) => {
+    if (page !== proposicoesPage) {
+      setProposicoesPage(page);
+    }
+  };
+
   const renderContent = () => {
-    if (isLoading) {
-      return <LoadingSpinner />;
-    }
-    if (error) {
-      return <ErrorMessage error={error} />;
-    }
-    if (!deputado) {
-      return <ErrorMessage error="Deputado não encontrado." />;
-    }
+    if (isLoading) return <LoadingSpinner />;
+    if (error) return <ErrorMessage error={error} />;
+    if (!deputado) return <ErrorMessage error="Deputado não encontrado." />;
 
     const { ultimoStatus, dataNascimento, escolaridade } = deputado;
     const { gabinete } = ultimoStatus;
@@ -286,16 +302,15 @@ const DeputadoDetailPage: React.FC = () => {
       (sum, d) => sum + d.valor,
       0,
     );
+
     const totalFrentesPages = Math.ceil(frentes.length / frentesPerPage);
     const indexOfLastFrente = frentesCurrentPage * frentesPerPage;
     const indexOfFirstFrente = indexOfLastFrente - frentesPerPage;
-    // Pega apenas o slice da lista de frentes para a página atual
     const currentFrentes = frentes.slice(indexOfFirstFrente, indexOfLastFrente);
 
     return (
       <Card className="w-full max-w-3xl">
         <div className="flex flex-col items-center pb-10">
-          {/* Foto e Nome (Topo) */}
           <Image
             src={ultimoStatus.urlFoto}
             alt={`Foto de ${ultimoStatus.nome}`}
@@ -316,9 +331,7 @@ const DeputadoDetailPage: React.FC = () => {
             </span>
           </div>
 
-          {/* Seções de Informações Pessoais (Acima do Accordion) */}
           <div className="mt-6 w-full divide-y divide-gray-200 text-left dark:divide-gray-700">
-            {/* Informações Pessoais */}
             <div className="py-4">
               <h6 className="mb-2 font-semibold text-gray-900 dark:text-white">
                 Informações Pessoais
@@ -340,7 +353,6 @@ const DeputadoDetailPage: React.FC = () => {
               </ul>
             </div>
 
-            {/* Gabinete */}
             {gabinete && (
               <div className="py-4">
                 <h6 className="mb-2 font-semibold text-gray-900 dark:text-white">
@@ -359,10 +371,8 @@ const DeputadoDetailPage: React.FC = () => {
             )}
           </div>
 
-          {/* 3. ACCORDION PRINCIPAL */}
           <div className="mt-6 w-full">
             <Accordion alwaysOpen collapseAll>
-              {/* Painel 1: Despesas */}
               <AccordionPanel>
                 <AccordionTitle className="flex items-center">
                   <LuCoins className="mr-3 h-4 w-4" />
@@ -373,13 +383,6 @@ const DeputadoDetailPage: React.FC = () => {
                   </span>
                 </AccordionTitle>
                 <AccordionContent>
-                  <p className="mb-4 text-sm text-gray-700 dark:text-gray-300">
-                    A Cota para o Exercício da Atividade Parlamentar (CEAP) visa
-                    ressarcir despesas como passagens aéreas, combustível e
-                    manutenção de escritórios.
-                  </p>
-
-                  {/* Filtros */}
                   <div className="mb-4 grid grid-cols-2 gap-4">
                     <div>
                       <div className="mb-2 block">
@@ -417,7 +420,6 @@ const DeputadoDetailPage: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Tabela de Despesas */}
                   {isDespesasLoading ? (
                     <div className="flex items-center text-sm text-gray-500 dark:text-gray-400">
                       <Spinner size="sm" />
@@ -426,15 +428,13 @@ const DeputadoDetailPage: React.FC = () => {
                   ) : aggregatedDespesas.length > 0 ? (
                     <div className="overflow-x-auto">
                       <Table striped hoverable className="text-sm">
+                        {/* CORREÇÃO DE HIDRATAÇÃO: TableRow adicionado dentro de TableHead */}
                         <TableHead>
                           <TableRow>
-                            {/* CORREÇÃO: Use Table.HeadCell */}
                             <TableHeadCell>Tipo de Despesa</TableHeadCell>
                             <TableHeadCell>Valor Total</TableHeadCell>
                           </TableRow>
                         </TableHead>
-
-                        {/* CORREÇÃO: Use Table.Body */}
                         <TableBody className="divide-y">
                           {aggregatedDespesas.map((despesa) => (
                             <TableRow
@@ -460,18 +460,12 @@ const DeputadoDetailPage: React.FC = () => {
                 </AccordionContent>
               </AccordionPanel>
 
-              {/* Painel 2: Histórico de Ocupações */}
               <AccordionPanel>
                 <AccordionTitle className="flex items-center">
                   <LuHouse className="mr-3 h-4 w-4" />
                   Frentes Parlamentares
                 </AccordionTitle>
                 <AccordionContent>
-                  <p className="mb-4 text-sm text-gray-700 dark:text-gray-300">
-                    Grupos de deputados de diversos partidos unidos por um
-                    interesse comum. A adesão reflete a área de atuação e foco
-                    do parlamentar.
-                  </p>
                   {isFrentesLoading ? (
                     <div className="flex items-center text-sm text-gray-500 dark:text-gray-400">
                       <Spinner size="sm" />
@@ -479,19 +473,16 @@ const DeputadoDetailPage: React.FC = () => {
                     </div>
                   ) : (
                     <>
-                      {/* Renderiza a lista fatiada (apenas 10 itens) */}
                       <FrentesList
                         frentes={currentFrentes}
                         isLoading={isFrentesLoading}
                       />
-
-                      {/* --- PAGINAÇÃO DE FRENTES --- */}
                       {frentes.length > frentesPerPage && (
                         <div className="mt-4 flex overflow-x-auto sm:justify-center">
                           <Pagination
                             currentPage={frentesCurrentPage}
                             totalPages={totalFrentesPages}
-                            onPageChange={setFrentesCurrentPage} // Atualiza o estado da página
+                            onPageChange={setFrentesCurrentPage}
                             showIcons
                           />
                         </div>
@@ -500,6 +491,7 @@ const DeputadoDetailPage: React.FC = () => {
                   )}
                 </AccordionContent>
               </AccordionPanel>
+
               <AccordionPanel>
                 <AccordionTitle className="flex items-center">
                   <LuText className="mr-3 h-4 w-4" />
@@ -510,10 +502,26 @@ const DeputadoDetailPage: React.FC = () => {
                     Últimos projetos de lei, PECs e outras proposições nas quais
                     o deputado é autor ou co-autor.
                   </p>
+
                   <ProposicoesDeputadoList
                     proposicoes={proposicoesDeputado}
                     isLoading={isProposicoesLoading}
                   />
+
+                  {/* Paginação */}
+                  {!isProposicoesLoading &&
+                    proposicoesDeputado.length > 0 &&
+                    totalProposicoesPages > 1 && (
+                      <div className="mt-4 flex justify-center">
+                        <Pagination
+                          currentPage={proposicoesPage}
+                          totalPages={totalProposicoesPages}
+                          onPageChange={handleProposicoesPageChange}
+                          showIcons
+                          layout="pagination"
+                        />
+                      </div>
+                    )}
                 </AccordionContent>
               </AccordionPanel>
             </Accordion>
@@ -525,15 +533,12 @@ const DeputadoDetailPage: React.FC = () => {
 
   return (
     <main className="mx-auto max-w-7xl p-4 md:p-8">
-      {/* Botão "Voltar" */}
       <div className="mb-4">
         <Button onClick={() => router.back()} color="gray" size="sm">
           <HiArrowLeft className="mr-2 h-4 w-4" />
           Voltar
         </Button>
       </div>
-
-      {/* Conteúdo */}
       <div className="flex justify-center">{renderContent()}</div>
     </main>
   );

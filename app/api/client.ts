@@ -204,7 +204,7 @@ export async function getAutoresProposicao(uri: string): Promise<Autor[]> {
 export async function getVotacoesDaProposicao(
   proposicaoId: string,
 ): Promise<Votacao[]> {
-  const endpoint = `/proposicoes/${proposicaoId}/votacoes`;
+  const endpoint = `/proposicoes/${proposicaoId}/votacoes?ordem=DESC&ordenarPor=dataHoraRegistro`;
 
   const response = await fetch(BASE_URL + endpoint, {
     headers: { Accept: "application/json" },
@@ -218,7 +218,6 @@ export async function getVotacoesDaProposicao(
   const data: CamaraApiVotacoesResponse = await response.json();
   return data.dados;
 }
-
 export async function getVotosDaVotacao(
   votacaoId: string,
 ): Promise<VotoDeputado[]> {
@@ -273,24 +272,15 @@ export async function getFrentesDeputado(
   const data = await response.json();
   return data.dados || [];
 }
-
 export async function getProposicoesDoDeputado(
   idDeputado: string,
-): Promise<Proposicoes[]> {
-  const url = `${BASE_URL}/proposicoes?idDeputadoAutor=${idDeputado}&ordem=DESC&ordenarPor=id&itens=10`;
+  pagina: number,
+): Promise<PaginatedResponse<Proposicoes>> {
+  const endpoint = `/proposicoes?idDeputadoAutor=${idDeputado}&ordem=DESC&ordenarPor=id&itens=5&pagina=${pagina}`; // Reduzi itens para 5 para testar melhor a paginação
 
-  const response = await fetch(url, {
-    headers: { Accept: "application/json" },
-    next: { revalidate: 3600 },
-  });
-
-  if (!response.ok) {
-    console.error(`Falha ao buscar proposições do deputado ${idDeputado}`);
-    return [];
-  }
-  const data = await response.json();
-  return data.dados || [];
+  return fetchCamaraAPI<Proposicoes>(endpoint);
 }
+
 export async function getTemas(): Promise<ReferenciaTema[]> {
   const endpoint = `/referencias/proposicoes/codTema`;
 

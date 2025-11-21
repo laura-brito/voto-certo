@@ -127,11 +127,21 @@ const ProposicaoDetailPage: React.FC = () => {
           const votacoesData = await getVotacoesDaProposicao(id);
 
           if (votacoesData && votacoesData.length > 0) {
-            const mainVotacao = votacoesData[0]; // Pega a primeira/mais recente
+            // Como ordenamos DESC na API, o índice 0 é a votação mais recente
+            const mainVotacao = votacoesData[0];
             setVotacaoPrincipal(mainVotacao);
 
-            const votosData = await getVotosDaVotacao(mainVotacao.id);
-            setVotos(votosData);
+            // Busca os votos individuais (se houver)
+            try {
+              const votosData = await getVotosDaVotacao(mainVotacao.id);
+              setVotos(votosData);
+            } catch (votoErr) {
+              console.warn(
+                "Votação sem votos individuais (provável simbólica)",
+                votoErr,
+              );
+              setVotos([]); // Garante array vazio se falhar ou não tiver votos
+            }
           }
         } catch (err) {
           console.error("Erro ao buscar votações:", err);
@@ -142,7 +152,6 @@ const ProposicaoDetailPage: React.FC = () => {
       fetchVotacoes();
     }
   }, [id]);
-
   // Função para abrir o modal
   const handleAutorClick = (autor: Autor) => {
     setSelectedAutor(autor);
@@ -302,7 +311,7 @@ const ProposicaoDetailPage: React.FC = () => {
           {/* Votação Principal */}
           <div className="py-4">
             <h6 className="mb-2 text-lg font-semibold text-gray-900 dark:text-white">
-              Votação Principal
+              Última Votação
               {votacaoPrincipal && (
                 <span className="ml-2 text-sm font-normal text-gray-500 dark:text-gray-400">
                   (em{" "}
@@ -310,45 +319,71 @@ const ProposicaoDetailPage: React.FC = () => {
                 </span>
               )}
             </h6>
+
             {isVotosLoading ? (
-              <>
-                <div>
-                  <div className="flex items-center text-sm text-gray-500 dark:text-gray-400">
-                    <Spinner size="sm" />
-                    <span className="ml-2">Buscando votos...</span>
+              <div className="flex items-center text-sm text-gray-500 dark:text-gray-400">
+                <Spinner size="sm" />
+                <span className="ml-2">Buscando dados da votação...</span>
+              </div>
+            ) : votacaoPrincipal ? (
+              // TEMOS UMA VOTAÇÃO (Seja nominal ou simbólica)
+              <div className="space-y-4">
+                {/* Exibe o resumo/ementa da votação se disponível */}
+                {votacaoPrincipal.ementa && (
+                  <p className="text-sm text-gray-600 italic dark:text-gray-400">
+                    {votacaoPrincipal.ementa}
+                  </p>
+                )}
+
+                {votos.length > 0 ? (
+                  // CASO 1: Votação Nominal (tem lista de votos)
+                  <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                    <div>
+                      <h5 className="mb-2 flex items-center font-semibold text-green-600">
+                        <HiCheckCircle className="mr-2 h-5 w-5" />A Favor (
+                        {votosSim.length})
+                      </h5>
+                      {votosSim.length > 0 ? (
+                        renderVotoList(votosSim)
+                      ) : (
+                        <p className="text-sm text-gray-500">
+                          Nenhum voto Sim.
+                        </p>
+                      )}
+                    </div>
+                    <div>
+                      <h5 className="mb-2 flex items-center font-semibold text-red-600">
+                        <HiXCircle className="mr-2 h-5 w-5" />
+                        Contra ({votosNao.length})
+                      </h5>
+                      {votosNao.length > 0 ? (
+                        renderVotoList(votosNao)
+                      ) : (
+                        <p className="text-sm text-gray-500">
+                          Nenhum voto Não.
+                        </p>
+                      )}
+                    </div>
                   </div>
-                </div>
-              </>
-            ) : votos.length > 0 ? (
-              <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                {/* Coluna A Favor */}
-                <div>
-                  <h5 className="mb-2 flex items-center font-semibold text-green-600">
-                    <HiCheckCircle className="mr-2 h-5 w-5" />A Favor (
-                    {votosSim.length})
-                  </h5>
-                  {votosSim.length > 0 ? (
-                    renderVotoList(votosSim)
-                  ) : (
-                    <p className="text-sm text-gray-500">Nenhum voto Sim.</p>
-                  )}
-                </div>
-                {/* Coluna Contra */}
-                <div>
-                  <h5 className="mb-2 flex items-center font-semibold text-red-600">
-                    <HiXCircle className="mr-2 h-5 w-5" />
-                    Contra ({votosNao.length})
-                  </h5>
-                  {votosNao.length > 0 ? (
-                    renderVotoList(votosNao)
-                  ) : (
-                    <p className="text-sm text-gray-500">Nenhum voto Não.</p>
-                  )}
-                </div>
+                ) : (
+                  // CASO 2: Votação Simbólica (sem lista de votos)
+                  <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-4 text-sm text-yellow-800 dark:border-yellow-800 dark:bg-gray-800 dark:text-yellow-300">
+                    <span className="font-semibold">
+                      Votação Simbólica ou Unânime:
+                    </span>
+                    <p className="mt-1">
+                      Nesta modalidade, não há registro individual de votos
+                      (Sim/Não). Geralmente ocorre quando há acordo entre as
+                      lideranças partidárias.
+                    </p>
+                  </div>
+                )}
               </div>
             ) : (
+              // CASO 3: Nenhuma votação encontrada
               <p className="text-sm text-gray-500 dark:text-gray-400">
-                Nenhuma votação registrada para esta proposição.
+                Esta proposição ainda não passou por votação nominal ou
+                registrada no Plenário.
               </p>
             )}
           </div>
