@@ -69,7 +69,7 @@ export default function RootLayout({
         <ThemeModeScript />
       </head>
       <body
-        className={`${interSans.variable} ${geistMono.variable} min-h-screen bg-gray-100 font-sans text-gray-900 antialiased dark:bg-gray-900 dark:text-white`}
+        className={`${interSans.variable} ${geistMono.variable} min-h-screen overflow-x-hidden! bg-gray-100 font-sans text-gray-900 antialiased dark:bg-gray-900 dark:text-white`}
       >
         <ThemeInit />
         <Header />

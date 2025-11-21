@@ -24,7 +24,11 @@ const DescriptionWithReadMore: React.FC<{ text: string; limit?: number }> = ({
 
   // Se o texto for curto, exibe normalmente
   if (text.length <= limit) {
-    return <p className="text-sm text-gray-700 dark:text-gray-300">{text}</p>;
+    return (
+      <p className="text-sm break-all text-gray-700 dark:text-gray-300">
+        {text}
+      </p>
+    );
   }
 
   const toggleReadMore = (e: React.MouseEvent) => {
@@ -77,7 +81,6 @@ export const ListPageLayout: React.FC<ListPageLayoutProps> = ({
   isLoading,
   error,
   initialSearchTerm,
-  onRetry,
 }) => {
   const [inputValue, setInputValue] = useState(initialSearchTerm);
   useEffect(() => {

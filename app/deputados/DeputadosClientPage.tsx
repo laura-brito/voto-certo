@@ -7,7 +7,7 @@ import { Deputado, Partido } from "../types/deputados";
 import { ListItem } from "../types/ListItem";
 import { usePaginatedApi } from "../hooks/usePaginatedApi";
 import { Pagination, Label } from "flowbite-react";
-import ReactSelect, { SingleValue } from "react-select"; // Import do React Select
+import ReactSelect, { SingleValue } from "react-select";
 import { getDeputados, getPartidos } from "../api/client";
 
 interface SelectOption {
@@ -55,10 +55,8 @@ const DeputadosClientPage: React.FC = () => {
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  // Estados para lista de partidos
   const [partidos, setPartidos] = useState<Partido[]>([]);
 
-  // Carrega os partidos na montagem
   useEffect(() => {
     const fetchRefs = async () => {
       try {
@@ -71,18 +69,15 @@ const DeputadosClientPage: React.FC = () => {
     fetchRefs();
   }, []);
 
-  // Leitura da URL
   const searchTerm = searchParams.get("q") || "";
-  const partidoParam = searchParams.get("partido"); // Filtro de partido
+  const partidoParam = searchParams.get("partido");
   const currentPage = Number(searchParams.get("page")) || 1;
 
-  // Filtros para o hook
   const filters = {
     nome: searchTerm,
     siglaPartido: partidoParam || undefined,
   };
 
-  // Hook de paginação
   const { items, isLoading, error, totalPages } = usePaginatedApi(
     getDeputados,
     transformDeputado,
@@ -92,7 +87,6 @@ const DeputadosClientPage: React.FC = () => {
   const handleRetry = () => {
     window.location.reload();
   };
-  // Helper para atualizar a URL
   const handleQueryChange = (
     params: Record<string, string | number | undefined | null>,
   ) => {
@@ -121,7 +115,6 @@ const DeputadosClientPage: React.FC = () => {
     handleQueryChange({ q: newSearchTerm || undefined, page: undefined });
   };
 
-  // Preparação para o React Select
   const partidoOptions: SelectOption[] = partidos.map((p) => ({
     value: p.sigla,
     label: `${p.sigla} - ${p.nome}`,
@@ -131,7 +124,6 @@ const DeputadosClientPage: React.FC = () => {
     ? partidoOptions.find((p) => p.value === partidoParam) || null
     : null;
 
-  // Estilos do React Select (reutilizando o estilo padrão do projeto)
   const reactSelectClassNames = {
     control: (state: { isFocused: boolean }) =>
       `!min-h-[42px] !rounded-lg !border !bg-gray-50 !text-sm dark:!bg-gray-700 dark:!text-white ${
@@ -164,9 +156,7 @@ const DeputadosClientPage: React.FC = () => {
         </p>
       </div>
 
-      {/* Área de Filtros */}
       <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {/* Filtro de Partido */}
         <div>
           <div className="mb-2 block">
             <Label htmlFor="partido">Filtrar por Partido</Label>
@@ -202,11 +192,13 @@ const DeputadosClientPage: React.FC = () => {
 
       <div className="mt-4">
         {!isLoading && !error && totalPages > 1 && (
-          <div className="mt-8 flex justify-center">
+          <div className="flex justify-center overflow-x-auto sm:justify-center">
             <Pagination
               currentPage={currentPage}
               totalPages={totalPages}
               onPageChange={onPageChange}
+              previousLabel=""
+              nextLabel=""
               showIcons
             />
           </div>

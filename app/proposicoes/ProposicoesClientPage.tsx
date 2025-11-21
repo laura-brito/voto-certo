@@ -28,7 +28,7 @@ const transformProposicao = (prop: Proposicoes): ListItem => ({
   ementa: prop.ementa || "",
   href: `/proposicoes/${prop.id}`,
 });
-const DEFAULT_SIGLAS = "PL,PEC,PET"; // Projetos de Lei, Emendas à Const., Medidas Provisórias
+const DEFAULT_SIGLAS = "PL,PEC,PET";
 
 const ProposicoesClientPage: React.FC = () => {
   const router = useRouter();
@@ -46,7 +46,6 @@ const ProposicoesClientPage: React.FC = () => {
           getTiposProposicao(),
         ]);
 
-        // FILTRO DE SEGURANÇA: Remove itens sem nome ou código/sigla
         const temasValidos = temasData
           .filter((t) => t.cod && t.nome)
           .sort((a, b) => a.nome.localeCompare(b.nome));
@@ -65,15 +64,13 @@ const ProposicoesClientPage: React.FC = () => {
   }, []);
   const searchTerm = searchParams.get("q") || "";
   const tema = searchParams.get("tema");
-  const sigla = searchParams.get("sigla"); // Agora pode ser null se estiver vazio
+  const sigla = searchParams.get("sigla");
   const currentPage = Number(searchParams.get("page")) || 1;
 
   useEffect(() => {
-    // Se ainda não aplicamos os defaults E não existe o parametro 'sigla' na URL
     if (!hasSetDefaults.current && !searchParams.has("sigla")) {
       hasSetDefaults.current = true;
 
-      // Atualiza a URL com os padrões (usando replace para não sujar o histórico)
       const newParams = new URLSearchParams(searchParams.toString());
       newParams.set("sigla", DEFAULT_SIGLAS);
       router.replace(`${pathname}?${newParams.toString()}`);
@@ -93,13 +90,11 @@ const ProposicoesClientPage: React.FC = () => {
     filters,
     currentPage,
   );
-  // Helper para atualizar URL
   const handleQueryChange = (
     params: Record<string, string | number | undefined | null>,
   ) => {
     const newParams = new URLSearchParams(searchParams.toString());
     Object.entries(params).forEach(([key, value]) => {
-      // Remove se for undefined, string vazia, null ou página 1
       if (
         value === undefined ||
         value === "" ||
@@ -125,7 +120,6 @@ const ProposicoesClientPage: React.FC = () => {
     handleQueryChange({ q: newSearchTerm || undefined, page: undefined });
   };
 
-  // 2. Preparar Opções para o React Select
   const temaOptions: SelectOption[] = temas.map((t) => ({
     value: t.cod,
     label: t.nome,
@@ -136,8 +130,6 @@ const ProposicoesClientPage: React.FC = () => {
     label: `${t.sigla} - ${t.nome}`,
   }));
 
-  // 3. Lógica de Seleção Robusta
-  // Só busca a opção se houver um valor válido na URL (não nulo e não vazio)
   const selectedTemaOption =
     (tema && temaOptions.find((option) => option.value === tema)) || null;
 
@@ -145,7 +137,6 @@ const ProposicoesClientPage: React.FC = () => {
     ? tipoOptions.filter((option) => sigla.split(",").includes(option.value))
     : [];
 
-  // 4. Estilos customizados para Dark Mode com Tailwind
   const reactSelectClassNames = {
     control: (state: { isFocused: boolean }) =>
       `!min-h-[42px] !rounded-lg !border !bg-gray-50 !text-sm dark:!bg-gray-700 dark:!text-white ${
@@ -179,9 +170,7 @@ const ProposicoesClientPage: React.FC = () => {
         </p>
       </div>
 
-      {/* --- ÁREA DE FILTROS --- */}
       <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {/* Filtro de Tema (Com React Select) */}
         <div>
           <div className="mb-2 block">
             <Label htmlFor="tema">Filtrar por Tema</Label>
@@ -204,7 +193,6 @@ const ProposicoesClientPage: React.FC = () => {
           />
         </div>
 
-        {/* Filtro de Sigla/Tipo (Com React Select) */}
         <div>
           <div className="mb-2 block">
             <Label htmlFor="sigla">Tipo de Proposição</Label>
@@ -212,10 +200,9 @@ const ProposicoesClientPage: React.FC = () => {
           <ReactSelect
             instanceId="select-sigla"
             options={tipoOptions}
-            value={selectedSiglaOptions} // Agora aceita array
-            isMulti // Habilita seleção múltipla
+            value={selectedSiglaOptions}
+            isMulti
             onChange={(newValue) => {
-              // Transforma o array de objetos em string separada por vírgula
               const values = (newValue as MultiValue<SelectOption>)
                 .map((v) => v.value)
                 .join(",");
@@ -245,11 +232,13 @@ const ProposicoesClientPage: React.FC = () => {
 
       <div className="mt-4">
         {!isLoading && !error && totalPages > 1 && (
-          <div className="mt-8 flex justify-center">
+          <div className="flex justify-center overflow-x-auto sm:justify-center">
             <Pagination
               currentPage={currentPage}
               totalPages={totalPages}
               onPageChange={onPageChange}
+              previousLabel=""
+              nextLabel=""
               showIcons
             />
           </div>
