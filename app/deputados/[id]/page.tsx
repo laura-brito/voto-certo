@@ -26,10 +26,8 @@ import {
   Tooltip, // Para a lista de Histórico
 } from "flowbite-react";
 import { HiArrowLeft } from "react-icons/hi";
-import { FaHistory, FaEuroSign } from "react-icons/fa"; // Ícones para o Accordion
 import Image from "next/image";
 import { DeputadoDetalhes, Frente } from "@/app/types/deputados";
-import { Metadata } from "next";
 import {
   getDeputadoById,
   getDeputadoDespesas,

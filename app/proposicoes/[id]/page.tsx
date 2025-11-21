@@ -34,6 +34,7 @@ import {
   getVotacoesDaProposicao,
   getVotosDaVotacao,
 } from "@/app/api/client";
+import { ProposicaoExplainer } from "@/app/components/ProposicaoExplainer";
 
 /**
  * Helper para extrair o ID do Deputado da URI
@@ -225,9 +226,15 @@ const ProposicaoDetailPage: React.FC = () => {
             <h6 className="mb-2 text-lg font-semibold text-gray-900 dark:text-white">
               Ementa
             </h6>
-            <p className="text-sm text-gray-700 dark:text-gray-300">
+            <p className="mb-4 text-sm text-gray-700 dark:text-gray-300">
               {proposicao.ementa}
             </p>
+
+            {/* 2. Adicione o ProposicaoExplainer aqui */}
+            <ProposicaoExplainer
+              ementa={proposicao.ementa}
+              proposicaoId={proposicao.id.toString()}
+            />
           </div>
 
           {/* Autoria */}

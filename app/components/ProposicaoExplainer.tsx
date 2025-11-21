@@ -2,8 +2,9 @@
 
 import { useState } from "react";
 import { Button, Spinner, Alert } from "flowbite-react";
-import { HiSparkles, HiExclamation } from "react-icons/hi";
+import { HiExclamation } from "react-icons/hi";
 import ReactMarkdown from "react-markdown"; // 1. Importe o ReactMarkdown
+import { LuSparkles } from "react-icons/lu";
 
 interface ProposicaoExplainerProps {
   ementa: string;
@@ -60,8 +61,8 @@ export const ProposicaoExplainer: React.FC<ProposicaoExplainerProps> = ({
           </>
         ) : (
           <>
-            <HiSparkles className="mr-1 h-4 w-4" />
-            Explicar
+            <LuSparkles className="mr-1 h-4 w-4" />
+            Explica AI
           </>
         )}
       </Button>

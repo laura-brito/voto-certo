@@ -65,3 +65,16 @@ export interface VotoDeputado {
     urlFoto: string;
   };
 }
+export interface ReferenciaTema {
+  cod: string;
+  sigla: string;
+  nome: string;
+  descricao: string;
+}
+
+export interface ReferenciaTipoProposicao {
+  id: number;
+  sigla: string;
+  nome: string;
+  descricao: string;
+}

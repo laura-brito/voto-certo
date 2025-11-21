@@ -3,6 +3,8 @@ import {
   CamaraApiVotosResponse,
   ProposicaoDetalhes,
   Proposicoes,
+  ReferenciaTema,
+  ReferenciaTipoProposicao,
   Votacao,
   VotoDeputado,
 } from "../types/proposicoes";
@@ -14,7 +16,11 @@ import {
   Frente,
 } from "../types/deputados";
 import { Autor, CamaraApiAutoresResponse } from "../types/autores";
-
+export interface ProposicaoFilters {
+  keywords?: string;
+  codTema?: string;
+  siglaTipo?: string;
+}
 const BASE_URL = "/api/camara";
 interface CamaraApiResponse<T> {
   dados: T[];
@@ -28,6 +34,11 @@ export interface PaginatedResponse<T> {
 
 interface CamaraApiSingularResponse<T> {
   dados: T;
+}
+export interface ProposicaoFilters {
+  keywords?: string;
+  codTema?: string;
+  siglaTipo?: string;
 }
 
 function parseTotalPages(links: { rel: string; href: string }[]): number {
@@ -86,16 +97,22 @@ async function fetchCamaraAPISingular<T>(endpoint: string): Promise<T> {
 }
 export async function getProposicoes(
   pagina: number,
-  searchTerm: string, // Novo parâmetro
+  filters: ProposicaoFilters,
 ): Promise<PaginatedResponse<Proposicoes>> {
-  const searchParam = searchTerm
-    ? `&keywords=${encodeURIComponent(searchTerm)}`
-    : "";
+  const params = new URLSearchParams();
 
-  const endpoint = `/proposicoes?pagina=${pagina}&itens=10&ordenarPor=id&ordem=DESC${searchParam}`;
+  params.set("pagina", pagina.toString());
+  params.set("itens", "10");
+  params.set("ordenarPor", "id");
+  params.set("ordem", "DESC");
+
+  if (filters.keywords) params.set("keywords", filters.keywords);
+  if (filters.codTema) params.set("codTema", filters.codTema);
+  if (filters.siglaTipo) params.set("siglaTipo", filters.siglaTipo);
+
+  const endpoint = `/proposicoes?${params.toString()}`;
   return fetchCamaraAPI<Proposicoes>(endpoint);
 }
-
 export async function getDeputados(
   pagina: number,
   searchTerm: string,
@@ -224,4 +241,31 @@ export async function getProposicoesDoDeputado(
   }
   const data = await response.json();
   return data.dados || [];
+}
+export async function getTemas(): Promise<ReferenciaTema[]> {
+  const endpoint = `/referencias/proposicoes/codTema`;
+
+  const response = await fetch(BASE_URL + endpoint, {
+    headers: { Accept: "application/json" },
+    next: { revalidate: 86400 },
+  });
+
+  if (!response.ok) return [];
+  const data = await response.json();
+  return data.dados;
+}
+
+export async function getTiposProposicao(): Promise<
+  ReferenciaTipoProposicao[]
+> {
+  const endpoint = `/referencias/proposicoes/siglaTipo`;
+
+  const response = await fetch(BASE_URL + endpoint, {
+    headers: { Accept: "application/json" },
+    next: { revalidate: 86400 },
+  });
+
+  if (!response.ok) return [];
+  const data = await response.json();
+  return data.dados;
 }

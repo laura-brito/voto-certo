@@ -3,17 +3,17 @@ import { useState, useEffect } from "react";
 import { ListItem } from "../types/ListItem";
 import { PaginatedResponse } from "../api/client";
 
-type FetchPaginatedFunction<T> = (
+type FetchPaginatedFunction<T, F> = (
   pagina: number,
-  searchTerm: string,
+  filters: F,
 ) => Promise<PaginatedResponse<T>>;
 
 type TransformFunction<T> = (data: T) => ListItem;
 
-export function usePaginatedApi<T>(
-  fetchFunction: FetchPaginatedFunction<T>,
+export function usePaginatedApi<T, F>(
+  fetchFunction: FetchPaginatedFunction<T, F>,
   transformFunction: TransformFunction<T>,
-  searchTerm: string,
+  filters: F,
   currentPage: number,
 ) {
   const [items, setItems] = useState<ListItem[]>([]);
@@ -28,7 +28,7 @@ export function usePaginatedApi<T>(
       setItems([]);
 
       try {
-        const response = await fetchFunction(currentPage, searchTerm);
+        const response = await fetchFunction(currentPage, filters);
         setItems(response.items.map(transformFunction));
         setTotalPages(response.totalPages);
       } catch (err) {
@@ -44,7 +44,7 @@ export function usePaginatedApi<T>(
     };
 
     loadData();
-  }, [currentPage, searchTerm, fetchFunction, transformFunction]);
+  }, [currentPage, JSON.stringify(filters), fetchFunction, transformFunction]);
 
   return { items, isLoading, error, totalPages };
 }
