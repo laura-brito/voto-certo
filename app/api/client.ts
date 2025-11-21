@@ -40,7 +40,11 @@ export interface ProposicaoFilters {
   codTema?: string;
   siglaTipo?: string;
 }
-
+function proxifyUrl(url: string): string {
+  if (!url) return "";
+  // Substitui o domínio oficial pelo nosso prefixo de proxy
+  return url.replace("https://dadosabertos.camara.leg.br/api/v2", BASE_URL);
+}
 function parseTotalPages(links: { rel: string; href: string }[]): number {
   const lastLink = links.find((link) => link.rel === "last");
 
@@ -108,7 +112,12 @@ export async function getProposicoes(
 
   if (filters.keywords) params.set("keywords", filters.keywords);
   if (filters.codTema) params.set("codTema", filters.codTema);
-  if (filters.siglaTipo) params.set("siglaTipo", filters.siglaTipo);
+  if (filters.siglaTipo) {
+    const siglas = filters.siglaTipo.split(",");
+    siglas.forEach((s) => {
+      if (s.trim()) params.append("siglaTipo", s.trim());
+    });
+  }
 
   const endpoint = `/proposicoes?${params.toString()}`;
   return fetchCamaraAPI<Proposicoes>(endpoint);
@@ -137,8 +146,10 @@ export async function getProposicaoById(
   return fetchCamaraAPISingular<ProposicaoDetalhes>(endpoint);
 }
 export async function getAutoresProposicao(uri: string): Promise<Autor[]> {
-  // 1. Busca a lista inicial de autores
-  const response = await fetch(uri, {
+  // A. Usa o proxy para a lista de autores
+  const urlProxy = proxifyUrl(uri);
+
+  const response = await fetch(urlProxy, {
     headers: {
       Accept: "application/json",
     },
@@ -152,27 +163,28 @@ export async function getAutoresProposicao(uri: string): Promise<Autor[]> {
   const data: CamaraApiAutoresResponse = await response.json();
   const autores = data.dados;
 
-  // 2. "Enriquece" os dados buscando os detalhes de cada deputado
-  // Usamos Promise.all para fazer as requisições em paralelo
+  // B. Busca detalhes individuais, também usando o proxy
   const autoresEnriquecidos = await Promise.all(
     autores.map(async (autor) => {
-      // Só buscamos detalhes se for Deputado e tiver uma URI válida
       if (autor.tipo === "Deputado(a)" && autor.uri) {
         try {
-          const depResponse = await fetch(autor.uri, {
+          // IMPORTANTE: Converte a URI do deputado para usar o proxy
+          const deputadoUrlProxy = proxifyUrl(autor.uri);
+
+          const depResponse = await fetch(deputadoUrlProxy, {
             headers: { Accept: "application/json" },
-            next: { revalidate: 86400 }, // Cache de 24h para detalhes do deputado
+            next: { revalidate: 86400 },
           });
 
           if (depResponse.ok) {
             const depData = await depResponse.json();
             const detalhes: DeputadoDetalhes = depData.dados;
 
-            // Retorna o autor com os dados extras mesclados
             return {
               ...autor,
               siglaPartido: detalhes.ultimoStatus.siglaPartido,
               siglaUf: detalhes.ultimoStatus.siglaUf,
+              urlFoto: detalhes.ultimoStatus.urlFoto,
             };
           }
         } catch (error) {
@@ -188,6 +200,7 @@ export async function getAutoresProposicao(uri: string): Promise<Autor[]> {
 
   return autoresEnriquecidos;
 }
+
 export async function getVotacoesDaProposicao(
   proposicaoId: string,
 ): Promise<Votacao[]> {

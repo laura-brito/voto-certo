@@ -14,6 +14,7 @@ import {
   ModalBody,
   ModalHeader,
   Spinner,
+  Avatar,
 } from "flowbite-react";
 import {
   HiArrowLeft,
@@ -354,36 +355,57 @@ const ProposicaoDetailPage: React.FC = () => {
         </div>
 
         {/* Modal de Informações do Autor */}
-        <Modal show={showModal} onClose={() => setShowModal(false)}>
-          <ModalHeader>Informações do Autor</ModalHeader>
+        <Modal
+          show={showModal}
+          onClose={() => setShowModal(false)}
+          size="md"
+          popup
+        >
+          <ModalHeader />
           <ModalBody>
-            <div className="space-y-4 text-base leading-relaxed text-gray-500 dark:text-gray-400">
-              <p>
-                <strong>Nome:</strong> {selectedAutor?.nome}
-              </p>
-              <p>
-                <strong>Tipo:</strong> {selectedAutor?.tipo}
-              </p>
+            <div className="flex flex-col items-center text-center">
+              {/* 3. SUBSTITUIÇÃO AQUI TAMBÉM: Avatar Grande no Modal */}
+              <Avatar
+                img={selectedAutor?.urlFoto}
+                alt={`Foto de ${selectedAutor?.nome}`}
+                rounded
+                size="xl" // Tamanho maior para o modal
+                className="mb-4"
+                placeholderInitials={selectedAutor?.nome?.charAt(0)}
+              />
+
+              <h3 className="mb-1 text-xl font-bold text-gray-900 dark:text-white">
+                {selectedAutor?.nome}
+              </h3>
+              <span className="text-sm text-gray-500 dark:text-gray-400">
+                {selectedAutor?.tipo}
+              </span>
+
+              {selectedAutor?.siglaPartido && (
+                <div className="mt-4 flex items-center space-x-2">
+                  <Badge color="info" size="sm">
+                    {selectedAutor.siglaPartido}
+                    {selectedAutor.siglaUf && ` - ${selectedAutor.siglaUf}`}
+                  </Badge>
+                </div>
+              )}
             </div>
           </ModalBody>
-          <ModalFooter>
-            {/* Link condicional para a página de detalhes do deputado */}
+          <ModalFooter className="justify-center border-t-0 pt-0">
             {selectedAutor &&
               selectedAutor.tipo === "Deputado(a)" &&
               getDeputadoIdFromUri(selectedAutor.uri) && (
                 <Button
+                  className="w-full"
                   onClick={() =>
                     router.push(
                       `/deputados/${getDeputadoIdFromUri(selectedAutor.uri)}`,
                     )
                   }
                 >
-                  Ver Perfil
+                  Ver Perfil Completo
                 </Button>
               )}
-            <Button color="gray" onClick={() => setShowModal(false)}>
-              Fechar
-            </Button>
           </ModalFooter>
         </Modal>
       </Card>

@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { LuFileText } from "react-icons/lu";
 import { ListPageLayout } from "../components/ListPageLayout";
@@ -11,7 +11,7 @@ import {
 import { ListItem } from "../types/ListItem";
 import { usePaginatedApi } from "../hooks/usePaginatedApi";
 import { Pagination, Label } from "flowbite-react";
-import ReactSelect, { SingleValue, ActionMeta } from "react-select";
+import ReactSelect, { SingleValue, ActionMeta, MultiValue } from "react-select";
 import { getProposicoes, getTemas, getTiposProposicao } from "../api/client";
 
 // Interface para as opções do React Select
@@ -29,12 +29,13 @@ const transformProposicao = (prop: Proposicoes): ListItem => ({
   ementa: prop.ementa || "",
   href: `/proposicoes/${prop.id}`,
 });
+const DEFAULT_SIGLAS = "PL,PEC,PET"; // Projetos de Lei, Emendas à Const., Medidas Provisórias
 
 const ProposicoesClientPage: React.FC = () => {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-
+  const hasSetDefaults = useRef(false);
   const [temas, setTemas] = useState<ReferenciaTema[]>([]);
   const [tipos, setTipos] = useState<ReferenciaTipoProposicao[]>([]);
 
@@ -63,13 +64,22 @@ const ProposicoesClientPage: React.FC = () => {
     };
     fetchRefs();
   }, []);
-
-  // 1. Leitura Segura da URL
   const searchTerm = searchParams.get("q") || "";
-  // Se o parâmetro não existir, garante que seja null
   const tema = searchParams.get("tema");
-  const sigla = searchParams.get("sigla");
+  const sigla = searchParams.get("sigla"); // Agora pode ser null se estiver vazio
   const currentPage = Number(searchParams.get("page")) || 1;
+
+  useEffect(() => {
+    // Se ainda não aplicamos os defaults E não existe o parametro 'sigla' na URL
+    if (!hasSetDefaults.current && !searchParams.has("sigla")) {
+      hasSetDefaults.current = true;
+
+      // Atualiza a URL com os padrões (usando replace para não sujar o histórico)
+      const newParams = new URLSearchParams(searchParams.toString());
+      newParams.set("sigla", DEFAULT_SIGLAS);
+      router.replace(`${pathname}?${newParams.toString()}`);
+    }
+  }, [searchParams, pathname, router]);
 
   // Objeto de filtros para o hook
   const filters = {
@@ -84,7 +94,6 @@ const ProposicoesClientPage: React.FC = () => {
     filters,
     currentPage,
   );
-
   // Helper para atualizar URL
   const handleQueryChange = (
     params: Record<string, string | number | undefined | null>,
@@ -131,8 +140,9 @@ const ProposicoesClientPage: React.FC = () => {
   const selectedTemaOption =
     (tema && temaOptions.find((option) => option.value === tema)) || null;
 
-  const selectedSiglaOption =
-    (sigla && tipoOptions.find((option) => option.value === sigla)) || null;
+  const selectedSiglaOptions = sigla
+    ? tipoOptions.filter((option) => sigla.split(",").includes(option.value))
+    : [];
 
   // 4. Estilos customizados para Dark Mode com Tailwind
   const reactSelectClassNames = {
@@ -196,19 +206,24 @@ const ProposicoesClientPage: React.FC = () => {
         {/* Filtro de Sigla/Tipo (Com React Select) */}
         <div>
           <div className="mb-2 block">
-            <Label htmlFor="sigla">Filtrar por Tipo de Proposição</Label>
+            <Label htmlFor="sigla">Tipo de Proposição</Label>
           </div>
           <ReactSelect
             instanceId="select-sigla"
             options={tipoOptions}
-            value={selectedSiglaOption}
-            onChange={(newValue) =>
+            value={selectedSiglaOptions} // Agora aceita array
+            isMulti // Habilita seleção múltipla
+            onChange={(newValue) => {
+              // Transforma o array de objetos em string separada por vírgula
+              const values = (newValue as MultiValue<SelectOption>)
+                .map((v) => v.value)
+                .join(",");
               handleQueryChange({
-                sigla: (newValue as SelectOption)?.value || null,
+                sigla: values || null,
                 page: 1,
-              })
-            }
-            placeholder="Selecione ou digite um tipo..."
+              });
+            }}
+            placeholder="Selecione os tipos..."
             isClearable
             isSearchable
             classNames={reactSelectClassNames}
