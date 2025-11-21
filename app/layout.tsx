@@ -56,12 +56,6 @@ export const metadata: Metadata = {
       "Acompanhe de forma fácil proposições, votações e gastos da Câmara.",
     images: ["/og-image.png"], // ⚠️ CRIE ESTE ARQUIVO
   },
-  // Ícones (favicon)
-  icons: {
-    icon: "/favicon.ico", // ⚠️ CRIE ESTE ARQUIVO
-    apple: "/apple-touch-icon.png", // ⚠️ CRIE ESTE ARQUIVO
-  },
-  manifest: "/manifest.json", // ⚠️ CRIE ESTE ARQUIVO
 };
 
 export default function RootLayout({

@@ -12,6 +12,7 @@ interface ListPageLayoutProps {
   isLoading: boolean;
   error: string | null;
   initialSearchTerm: string;
+  onRetry?: () => void;
 }
 const DescriptionWithReadMore: React.FC<{ text: string; limit?: number }> = ({
   text,
@@ -76,6 +77,7 @@ export const ListPageLayout: React.FC<ListPageLayoutProps> = ({
   isLoading,
   error,
   initialSearchTerm,
+  onRetry,
 }) => {
   const [inputValue, setInputValue] = useState(initialSearchTerm);
   useEffect(() => {

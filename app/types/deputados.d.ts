@@ -58,3 +58,9 @@ export interface Frente {
   idLegislatura: number;
   uri: string;
 }
+export interface Partido {
+  id: number;
+  sigla: string;
+  nome: string;
+  uri: string;
+}

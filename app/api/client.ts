@@ -14,6 +14,7 @@ import {
   DeputadoDetalhes,
   Despesa,
   Frente,
+  Partido,
 } from "../types/deputados";
 import { Autor, CamaraApiAutoresResponse } from "../types/autores";
 export interface ProposicaoFilters {
@@ -26,7 +27,10 @@ interface CamaraApiResponse<T> {
   dados: T[];
   links: { rel: string; href: string }[];
 }
-
+export interface DeputadoFilters {
+  nome?: string;
+  siglaPartido?: string;
+}
 export interface PaginatedResponse<T> {
   items: T[];
   totalPages: number;
@@ -124,15 +128,37 @@ export async function getProposicoes(
 }
 export async function getDeputados(
   pagina: number,
-  searchTerm: string,
+  filters: DeputadoFilters, // Mudou de string para objeto
 ): Promise<PaginatedResponse<Deputado>> {
-  const searchParam = searchTerm
-    ? `&nome=${encodeURIComponent(searchTerm)}`
-    : "";
+  const params = new URLSearchParams();
 
-  const endpoint = `/deputados?pagina=${pagina}&itens=10&ordenarPor=nome&ordem=ASC${searchParam}`;
+  params.set("pagina", pagina.toString());
+  params.set("itens", "12"); // Exibe 12 por página (fica melhor no grid)
+  params.set("ordenarPor", "nome");
+  params.set("ordem", "ASC");
 
+  if (filters.nome) params.set("nome", filters.nome);
+  if (filters.siglaPartido) params.set("siglaPartido", filters.siglaPartido);
+
+  const endpoint = `/deputados?${params.toString()}`;
   return fetchCamaraAPI<Deputado>(endpoint);
+}
+export async function getPartidos(): Promise<Partido[]> {
+  // Busca até 100 partidos (suficiente para todos os atuais)
+  const endpoint = `/partidos?ordem=ASC&ordenarPor=sigla`;
+
+  const response = await fetch(BASE_URL + endpoint, {
+    headers: { Accept: "application/json" },
+    next: { revalidate: 86400 }, // Cache de 24h
+  });
+
+  if (!response.ok) {
+    console.error("Falha ao buscar partidos");
+    return [];
+  }
+
+  const data = await response.json();
+  return data.dados || [];
 }
 export async function getDeputadoById(id: string): Promise<DeputadoDetalhes> {
   const endpoint = `/deputados/${id}`;

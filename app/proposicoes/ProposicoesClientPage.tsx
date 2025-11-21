@@ -113,7 +113,9 @@ const ProposicoesClientPage: React.FC = () => {
     });
     router.push(`${pathname}?${newParams.toString()}`);
   };
-
+  const handleRetry = () => {
+    window.location.reload();
+  };
   const onPageChange = (page: number) => {
     handleQueryChange({ page: page });
     window.scrollTo(0, 0);
@@ -238,6 +240,7 @@ const ProposicoesClientPage: React.FC = () => {
         isLoading={isLoading}
         error={error}
         initialSearchTerm={searchTerm}
+        onRetry={handleRetry}
       />
 
       <div className="mt-4">

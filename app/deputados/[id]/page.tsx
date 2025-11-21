@@ -284,14 +284,36 @@ const DeputadoDetailPage: React.FC = () => {
     }
   }, [id, proposicoesPage]);
 
-  // Handler seguro para paginação
   const handleProposicoesPageChange = (page: number) => {
     if (page !== proposicoesPage) {
       setProposicoesPage(page);
     }
   };
 
+  const handleRetry = () => {
+    window.location.reload();
+  };
+
   const renderContent = () => {
+    if (isLoading) return <LoadingSpinner />;
+
+    if (error) {
+      return (
+        <ErrorMessage
+          error={error}
+          onRetry={handleRetry} // Passa a função de retry
+        />
+      );
+    }
+
+    if (!deputado) {
+      return (
+        <ErrorMessage
+          error="Deputado não encontrado."
+          onRetry={() => router.push("/deputados")} // Redireciona se não achar
+        />
+      );
+    }
     if (isLoading) return <LoadingSpinner />;
     if (error) return <ErrorMessage error={error} />;
     if (!deputado) return <ErrorMessage error="Deputado não encontrado." />;
