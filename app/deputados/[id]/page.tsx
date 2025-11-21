@@ -505,6 +505,8 @@ const DeputadoDetailPage: React.FC = () => {
                             currentPage={frentesCurrentPage}
                             totalPages={totalFrentesPages}
                             onPageChange={setFrentesCurrentPage}
+                            previousLabel=""
+                            nextLabel=""
                             showIcons
                           />
                         </div>
@@ -534,13 +536,14 @@ const DeputadoDetailPage: React.FC = () => {
                   {!isProposicoesLoading &&
                     proposicoesDeputado.length > 0 &&
                     totalProposicoesPages > 1 && (
-                      <div className="mt-4 flex justify-center">
+                      <div className="mt-4 flex overflow-x-auto sm:justify-center">
                         <Pagination
                           currentPage={proposicoesPage}
                           totalPages={totalProposicoesPages}
                           onPageChange={handleProposicoesPageChange}
                           showIcons
-                          layout="pagination"
+                          previousLabel=""
+                          nextLabel=""
                         />
                       </div>
                     )}
