@@ -4,6 +4,7 @@ import { Geist_Mono, Inter } from "next/font/google";
 import { ThemeInit } from "../.flowbite-react/init";
 import "./globals.css";
 import { Header } from "./components/Header";
+import { Analytics } from "@vercel/analytics/next";
 
 const interSans = Inter({
   variable: "--font-inter-sans",
@@ -74,6 +75,7 @@ export default function RootLayout({
         <ThemeInit />
         <Header />
         {children}
+        <Analytics />
       </body>
     </html>
   );
