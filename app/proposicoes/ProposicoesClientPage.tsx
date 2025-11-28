@@ -18,6 +18,7 @@ interface SelectOption {
   value: string;
   label: string;
 }
+const DEFAULT_SIGLAS = "PL,PEC,PET";
 
 const transformProposicao = (prop: Proposicoes): ListItem => ({
   id: prop.id.toString(),
@@ -28,7 +29,6 @@ const transformProposicao = (prop: Proposicoes): ListItem => ({
   ementa: prop.ementa || "",
   href: `/proposicoes/${prop.id}`,
 });
-const DEFAULT_SIGLAS = "PL,PEC,PET";
 
 const ProposicoesClientPage: React.FC = () => {
   const router = useRouter();
@@ -62,34 +62,26 @@ const ProposicoesClientPage: React.FC = () => {
     };
     fetchRefs();
   }, []);
+
   const searchTerm = searchParams.get("q") || "";
   const tema = searchParams.get("tema");
-  const sigla = searchParams.get("sigla");
+  const siglaParam = searchParams.get("sigla"); // Pode ser null
   const currentPage = Number(searchParams.get("page")) || 1;
 
-  useEffect(() => {
-    if (!hasSetDefaults.current && !searchParams.has("sigla")) {
-      hasSetDefaults.current = true;
+  const shouldUseDefault = siglaParam === null && !hasSetDefaults.current;
+  const siglaToUse = shouldUseDefault ? DEFAULT_SIGLAS : siglaParam || "";
 
+  useEffect(() => {
+    if (shouldUseDefault) {
+      hasSetDefaults.current = true;
       const newParams = new URLSearchParams(searchParams.toString());
       newParams.set("sigla", DEFAULT_SIGLAS);
       router.replace(`${pathname}?${newParams.toString()}`);
+    } else {
+      hasSetDefaults.current = true;
     }
-  }, [searchParams, pathname, router]);
+  }, [shouldUseDefault, searchParams, pathname, router]);
 
-  // Objeto de filtros para o hook
-  const filters = {
-    keywords: searchTerm,
-    codTema: tema || undefined,
-    siglaTipo: sigla || undefined,
-  };
-
-  const { items, isLoading, error, totalPages } = usePaginatedApi(
-    getProposicoes,
-    transformProposicao,
-    filters,
-    currentPage,
-  );
   const handleQueryChange = (
     params: Record<string, string | number | undefined | null>,
   ) => {
@@ -108,9 +100,7 @@ const ProposicoesClientPage: React.FC = () => {
     });
     router.push(`${pathname}?${newParams.toString()}`);
   };
-  const handleRetry = () => {
-    window.location.reload();
-  };
+
   const onPageChange = (page: number) => {
     handleQueryChange({ page: page });
     window.scrollTo(0, 0);
@@ -118,6 +108,23 @@ const ProposicoesClientPage: React.FC = () => {
 
   const onSearchSubmit = (newSearchTerm: string) => {
     handleQueryChange({ q: newSearchTerm || undefined, page: undefined });
+  };
+  // Objeto de filtros usando a sigla CALCULADA
+  const filters = {
+    keywords: searchTerm,
+    codTema: tema || undefined,
+    siglaTipo: siglaToUse || undefined, // Agora usa 'siglaToUse'
+  };
+
+  const { items, isLoading, error, totalPages } = usePaginatedApi(
+    getProposicoes,
+    transformProposicao,
+    filters,
+    currentPage,
+  );
+
+  const handleRetry = () => {
+    window.location.reload();
   };
 
   const temaOptions: SelectOption[] = temas.map((t) => ({
@@ -133,8 +140,10 @@ const ProposicoesClientPage: React.FC = () => {
   const selectedTemaOption =
     (tema && temaOptions.find((option) => option.value === tema)) || null;
 
-  const selectedSiglaOptions = sigla
-    ? tipoOptions.filter((option) => sigla.split(",").includes(option.value))
+  const selectedSiglaOptions = siglaToUse
+    ? tipoOptions.filter((option) =>
+        siglaToUse.split(",").includes(option.value),
+      )
     : [];
 
   const reactSelectClassNames = {

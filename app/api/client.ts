@@ -21,6 +21,8 @@ export interface ProposicaoFilters {
   keywords?: string;
   codTema?: string;
   siglaTipo?: string;
+  numero?: string;
+  ano?: string;
 }
 const BASE_URL = "/api/camara";
 interface CamaraApiResponse<T> {
@@ -116,6 +118,10 @@ export async function getProposicoes(
 
   if (filters.keywords) params.set("keywords", filters.keywords);
   if (filters.codTema) params.set("codTema", filters.codTema);
+
+  if (filters.numero) params.set("numero", filters.numero);
+  if (filters.ano) params.set("ano", filters.ano);
+
   if (filters.siglaTipo) {
     const siglas = filters.siglaTipo.split(",");
     siglas.forEach((s) => {
@@ -126,6 +132,7 @@ export async function getProposicoes(
   const endpoint = `/proposicoes?${params.toString()}`;
   return fetchCamaraAPI<Proposicoes>(endpoint);
 }
+
 export async function getDeputados(
   pagina: number,
   filters: DeputadoFilters, // Mudou de string para objeto

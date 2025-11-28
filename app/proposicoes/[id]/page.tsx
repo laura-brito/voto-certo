@@ -22,6 +22,8 @@ import {
   HiOutlineUser,
   HiCheckCircle,
   HiXCircle,
+  HiOutlineDocumentDownload,
+  HiTag,
 } from "react-icons/hi";
 import {
   ProposicaoDetalhes,
@@ -36,10 +38,8 @@ import {
   getVotosDaVotacao,
 } from "@/app/api/client";
 import { ProposicaoExplainer } from "@/app/components/ProposicaoExplainer";
+import { LuDownload } from "react-icons/lu";
 
-/**
- * Helper para extrair o ID do Deputado da URI
- */
 const getDeputadoIdFromUri = (uri: string): string | null => {
   const match = uri.match(/\/deputados\/(\d+)$/);
   return match ? match[1] : null;
@@ -50,27 +50,22 @@ const ProposicaoDetailPage: React.FC = () => {
   const router = useRouter();
   const id = params.id as string;
 
-  // Estados principais
   const [proposicao, setProposicao] = useState<ProposicaoDetalhes | null>(null);
   const [autores, setAutores] = useState<Autor[]>([]);
   const [error, setError] = useState<string | null>(null);
 
-  // Estados de Votação
   const [votacaoPrincipal, setVotacaoPrincipal] = useState<Votacao | null>(
     null,
   );
   const [votos, setVotos] = useState<VotoDeputado[]>([]);
 
-  // Estados de Loading
   const [isLoading, setIsLoading] = useState(true);
   const [isAutoresLoading, setIsAutoresLoading] = useState(true);
   const [isVotosLoading, setIsVotosLoading] = useState(true);
 
-  // Estados do Modal
   const [showModal, setShowModal] = useState(false);
   const [selectedAutor, setSelectedAutor] = useState<Autor | null>(null);
 
-  // Efeito 1: Busca a Proposição Principal
   useEffect(() => {
     if (id) {
       const fetchDetalhes = async () => {
@@ -121,26 +116,30 @@ const ProposicaoDetailPage: React.FC = () => {
   }, [proposicao]); // Depende do objeto 'proposicao'
 
   useEffect(() => {
-    if (id) {
+    if (id && proposicao) {
+      // Dependemos também dos detalhes da proposição carregada
       const fetchVotacoes = async () => {
         try {
-          const votacoesData = await getVotacoesDaProposicao(id);
+          // 1. Tenta buscar votações da proposição atual
+          let votacoesData = await getVotacoesDaProposicao(id);
+
+          if (votacoesData.length === 0 && proposicao.uriPropPrincipal) {
+            const idPrincipal = proposicao.uriPropPrincipal.split("/").pop();
+            if (idPrincipal && idPrincipal !== id) {
+              console.log(`Buscando votações da principal: ${idPrincipal}`);
+              votacoesData = await getVotacoesDaProposicao(idPrincipal);
+            }
+          }
 
           if (votacoesData && votacoesData.length > 0) {
-            // Como ordenamos DESC na API, o índice 0 é a votação mais recente
             const mainVotacao = votacoesData[0];
             setVotacaoPrincipal(mainVotacao);
 
-            // Busca os votos individuais (se houver)
             try {
               const votosData = await getVotosDaVotacao(mainVotacao.id);
               setVotos(votosData);
-            } catch (votoErr) {
-              console.warn(
-                "Votação sem votos individuais (provável simbólica)",
-                votoErr,
-              );
-              setVotos([]); // Garante array vazio se falhar ou não tiver votos
+            } catch {
+              setVotos([]);
             }
           }
         } catch (err) {
@@ -151,7 +150,8 @@ const ProposicaoDetailPage: React.FC = () => {
       };
       fetchVotacoes();
     }
-  }, [id]);
+  }, [id, proposicao]);
+
   // Função para abrir o modal
   const handleAutorClick = (autor: Autor) => {
     setSelectedAutor(autor);
@@ -200,14 +200,38 @@ const ProposicaoDetailPage: React.FC = () => {
       : isAutoresLoading
         ? "Carregando..."
         : "Autor desconhecido";
+    const keywordList = proposicao.keywords
+      ? proposicao.keywords
+          .split(",")
+          .map((k) => k.trim())
+          .slice(0, 5)
+      : [];
 
     return (
       <Card className="w-full max-w-3xl">
         {/* Cabeçalho do Card */}
         <div className="flex flex-col pb-4">
-          <h5 className="mb-2 text-3xl font-bold text-gray-900 dark:text-white">
-            {proposicao.siglaTipo} {proposicao.numero}/{proposicao.ano}
-          </h5>
+          <div className="flex items-start justify-between">
+            <h5 className="mb-2 text-3xl font-bold text-gray-900 dark:text-white">
+              {proposicao.siglaTipo} {proposicao.numero}/{proposicao.ano}
+            </h5>
+
+            {/* BOTÃO INTEIRO TEOR NO TOPO À DIREITA */}
+            {proposicao.urlInteiroTeor && (
+              <Button
+                as={Link}
+                href={proposicao.urlInteiroTeor}
+                target="_blank"
+                rel="noopener noreferrer"
+                color="light"
+                size="xs"
+                className="shrink-0"
+              >
+                <HiOutlineDocumentDownload className="mr-2 h-4 w-4" />
+                Inteiro Teor
+              </Button>
+            )}
+          </div>
           <div className="flex flex-wrap gap-2">
             <Badge
               icon={HiOutlineUser}
@@ -248,6 +272,18 @@ const ProposicaoDetailPage: React.FC = () => {
               ementa={proposicao.ementa}
               proposicaoId={proposicao.id.toString()}
             />
+            {keywordList.length > 0 && (
+              <div className="mt-4 flex flex-wrap gap-2">
+                {keywordList.map((keyword, index) => (
+                  <span
+                    key={index}
+                    className="inline-flex items-center rounded-full border border-gray-200 bg-gray-50 px-2.5 py-0.5 text-xs font-medium text-gray-600 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-300"
+                  >
+                    {keyword}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Autoria */}

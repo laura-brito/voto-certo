@@ -30,13 +30,16 @@ export interface ProposicaoDetalhes {
   ementa: string;
   ementaDetalhada: string;
   dataApresentacao: string;
-  uriAutores: string; // CORREÇÃO: Esta é a string que você nos mostrou
+  uriAutores: string;
   statusProposicao: {
     dataHora: string;
     descricaoSituacao: string;
     descricaoTramitacao: string;
     despacho: string;
   };
+  keywords?: string;
+  urlInteiroTeor?: string;
+  uriPropPrincipal?: string;
 }
 interface CamaraApiVotacoesResponse {
   dados: Votacao[];
