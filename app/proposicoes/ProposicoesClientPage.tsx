@@ -19,7 +19,29 @@ interface SelectOption {
   label: string;
 }
 const DEFAULT_SIGLAS = "PL,PEC,PET";
+const parseSearchQuery = (query: string) => {
+  const term = query.trim();
 
+  const matchNumAno = term.match(/^(\d+)\/(\d{4})$/);
+  if (matchNumAno) {
+    return { numero: matchNumAno[1], ano: matchNumAno[2], keywords: undefined };
+  }
+
+  const matchAno = term.match(/^(\d{4})$/);
+  if (matchAno) {
+    const year = parseInt(matchAno[1]);
+    if (year >= 1900 && year <= 2100) {
+      return { ano: matchAno[1], numero: undefined, keywords: undefined };
+    }
+  }
+
+  const matchNum = term.match(/^(\d+)$/);
+  if (matchNum) {
+    return { numero: matchNum[1], ano: undefined, keywords: undefined };
+  }
+
+  return { keywords: term || undefined, numero: undefined, ano: undefined };
+};
 const transformProposicao = (prop: Proposicoes): ListItem => ({
   id: prop.id.toString(),
   icon: <LuFileText className="h-10 w-10 text-blue-600" />,
@@ -82,6 +104,8 @@ const ProposicoesClientPage: React.FC = () => {
     }
   }, [shouldUseDefault, searchParams, pathname, router]);
 
+  const { numero, ano, keywords } = parseSearchQuery(searchTerm);
+
   const handleQueryChange = (
     params: Record<string, string | number | undefined | null>,
   ) => {
@@ -111,7 +135,9 @@ const ProposicoesClientPage: React.FC = () => {
   };
   // Objeto de filtros usando a sigla CALCULADA
   const filters = {
-    keywords: searchTerm,
+    keywords: keywords,
+    numero,
+    ano,
     codTema: tema || undefined,
     siglaTipo: siglaToUse || undefined, // Agora usa 'siglaToUse'
   };
@@ -231,7 +257,7 @@ const ProposicoesClientPage: React.FC = () => {
 
       <ListPageLayout
         items={items}
-        searchPlaceholder="Pesquisar por palavras-chave (ementa)..."
+        searchPlaceholder="Busque por '300/2024', 'Educação' ou '2023'..."
         onSearchSubmit={onSearchSubmit}
         isLoading={isLoading}
         error={error}
